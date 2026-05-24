@@ -1,0 +1,13 @@
+# Python & Jupyter check files
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.ipynb_checkpoints/
+
+# Operating System files
+.DS_Store
+Thumbs.db

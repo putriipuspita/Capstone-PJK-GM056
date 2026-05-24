@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-hero: #AB1509;
+  --color-navbar: #8A1107;
+  --color-highlight: #FFD6D4;
+  --color-abu: #f4f5f7;
+  --color-teks: #333333;
+
+  @keyframes melayang {
+    0% { transform: translateY(0px) rotate(-3deg); }
+    50% { transform: translateY(-10px) rotate(-2deg); }
+    100% { transform: translateY(0px) rotate(-3deg); }
+  }
+  
+  @keyframes melayang-kartu {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+
+  --animate-melayang: melayang 6s ease-in-out infinite;
+  --animate-melayang-kartu: melayang-kartu 5s ease-in-out infinite;
+  --animate-marquee: marquee 30s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-white text-teks leading-relaxed;
+}
+
+.text-gradient-logo {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(to right, #ffffff, #FFD6D4);
+}
+
+.text-gradient-hero {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(to right, #FF8A8A, #FFD6D4);
+}
+
+html {
+  scroll-behavior: smooth;
+}
