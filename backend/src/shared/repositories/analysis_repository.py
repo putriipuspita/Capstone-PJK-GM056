@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.shared.models import AnalysisResult, AnalysisRun, Review
 
@@ -23,6 +23,18 @@ def create_analysis_run(
     db.add(analysis_run)
     db.flush()
     return analysis_run
+
+
+def get_analysis_run(db: Session, *, analysis_run_id: str) -> AnalysisRun | None:
+    return db.get(
+        AnalysisRun,
+        analysis_run_id,
+        options=[
+            selectinload(AnalysisRun.product),
+            selectinload(AnalysisRun.dataset),
+            selectinload(AnalysisRun.result),
+        ],
+    )
 
 
 def update_analysis_status(

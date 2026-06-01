@@ -7,22 +7,43 @@ from src.api_app.services.insight_service import (
     build_strengths,
 )
 from src.ml.dummy_predictor import DummySentimentPredictor
-from src.shared.analysis_store import update_analysis_run
+from src.shared.database import SessionLocal
+from src.shared.models import Review
+from src.shared.repositories.analysis_repository import (
+    create_analysis_result,
+    get_analysis_run,
+    update_analysis_status,
+    update_review_predictions,
+)
+from src.shared.repositories.dataset_repository import get_reviews_by_dataset
 from src.utils.csv_reader import ReviewRow
 
 
-def process_analysis(analysis_id: str, rows: list[ReviewRow]) -> None:
+def process_analysis(analysis_id: str) -> None:
+    db = SessionLocal()
     try:
-        update_analysis_run(analysis_id, status="processing", progress=10)
+        analysis_run = get_analysis_run(db, analysis_run_id=analysis_id)
+        if not analysis_run:
+            return
+
+        update_analysis_status(db, analysis_run=analysis_run, status="processing", progress=10)
+        db.commit()
+
+        reviews = get_reviews_by_dataset(db, dataset_id=analysis_run.dataset_id)
+        rows = [_review_to_row(review) for review in reviews]
 
         predictor = DummySentimentPredictor()
         predictions = predictor.predict_sentiments([row.review_text for row in rows])
 
-        update_analysis_run(
-            analysis_id,
+        update_review_predictions(db, reviews=reviews, predictions=predictions)
+        update_analysis_status(
+            db,
+            analysis_run=analysis_run,
+            status="processing",
             progress=70,
             processed_reviews=len(rows),
         )
+        db.commit()
 
         aspect_insights = build_aspect_insights(rows, predictions)
         complaints = build_complaints(rows, predictions)
@@ -39,19 +60,31 @@ def process_analysis(analysis_id: str, rows: list[ReviewRow]) -> None:
             "sample_predictions": predictions[:10],
         }
 
-        update_analysis_run(
-            analysis_id,
+        create_analysis_result(db, analysis_run_id=analysis_id, result=result)
+        update_analysis_status(
+            db,
+            analysis_run=analysis_run,
             status="completed",
             progress=100,
             processed_reviews=len(rows),
-            result=result,
         )
+        db.commit()
     except Exception as exc:
-        update_analysis_run(
-            analysis_id,
-            status="failed",
-            error_message=str(exc),
-        )
+        db.rollback()
+        analysis_run = get_analysis_run(db, analysis_run_id=analysis_id)
+        if analysis_run:
+            update_analysis_status(db, analysis_run=analysis_run, status="failed", error_message=str(exc))
+            db.commit()
+    finally:
+        db.close()
+
+
+def _review_to_row(review: Review) -> ReviewRow:
+    return ReviewRow(
+        review_date=review.review_date or "",
+        review_text=review.review_text,
+        rating=str(review.rating or ""),
+    )
 
 
 def _build_summary(predictions: list[dict]) -> dict:

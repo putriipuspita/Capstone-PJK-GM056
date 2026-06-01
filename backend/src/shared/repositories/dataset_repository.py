@@ -38,6 +38,10 @@ def create_reviews(db: Session, *, dataset_id: str, rows: list[ReviewRow]) -> li
     return reviews
 
 
+def get_reviews_by_dataset(db: Session, *, dataset_id: str) -> list[Review]:
+    return db.query(Review).filter(Review.dataset_id == dataset_id).order_by(Review.created_at.asc()).all()
+
+
 def _parse_rating(value: str) -> int | None:
     try:
         return int(float(value))
