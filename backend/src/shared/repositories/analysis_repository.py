@@ -78,6 +78,32 @@ def list_completed_analysis_runs(db: Session, *, user_id: str) -> list[AnalysisR
     return list(db.execute(statement).scalars().all())
 
 
+def get_latest_completed_analysis_for_product(
+    db: Session,
+    *,
+    user_id: str,
+    product_id: str,
+) -> AnalysisRun | None:
+    statement = (
+        select(AnalysisRun)
+        .join(AnalysisRun.product)
+        .options(
+            selectinload(AnalysisRun.product),
+            selectinload(AnalysisRun.dataset),
+            selectinload(AnalysisRun.result),
+        )
+        .where(
+            AnalysisRun.product.has(user_id=user_id),
+            AnalysisRun.product_id == product_id,
+            AnalysisRun.status == "completed",
+        )
+        .order_by(AnalysisRun.created_at.desc())
+        .limit(1)
+    )
+
+    return db.execute(statement).scalar_one_or_none()
+
+
 def update_analysis_status(
     db: Session,
     *,
