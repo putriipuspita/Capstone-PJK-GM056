@@ -1,7 +1,7 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from src.shared.models import Product, UserProfile
+from src.shared.models import AnalysisRun, Product, UserProfile
 
 
 def get_or_create_user_profile(
@@ -35,3 +35,28 @@ def get_or_create_product(db: Session, *, user_id: str, product_name: str) -> Pr
     db.add(product)
     db.flush()
     return product
+
+
+def list_products_with_analysis_stats(db: Session, *, user_id: str) -> list[dict]:
+    statement = (
+        select(
+            Product.id,
+            Product.name,
+            func.count(AnalysisRun.id).label("total_analyses"),
+            func.max(AnalysisRun.created_at).label("latest_analysis_at"),
+        )
+        .outerjoin(AnalysisRun, AnalysisRun.product_id == Product.id)
+        .where(Product.user_id == user_id)
+        .group_by(Product.id, Product.name)
+        .order_by(func.max(AnalysisRun.created_at).desc().nullslast(), Product.name.asc())
+    )
+
+    return [
+        {
+            "id": row.id,
+            "name": row.name,
+            "total_analyses": row.total_analyses,
+            "latest_analysis_at": row.latest_analysis_at,
+        }
+        for row in db.execute(statement).all()
+    ]
