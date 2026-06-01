@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
     dev_store_name: str = "Sentix Demo Store"
     dev_user_email: str = "demo@sentix.local"
+    supabase_url: str = "https://your-project.supabase.co"
+    supabase_service_role_key: str = "your-service-role-key"
+    supabase_storage_bucket: str = "uploads"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
