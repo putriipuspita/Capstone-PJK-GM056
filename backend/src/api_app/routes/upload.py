@@ -1,8 +1,9 @@
-from collections import Counter, defaultdict
+from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile, status
 
-from src.ml.dummy_predictor import DummySentimentPredictor
+from src.api_app.services.analysis_service import process_analysis
+from src.shared.analysis_store import create_analysis_run
 from src.utils.csv_reader import parse_review_csv
 
 router = APIRouter(prefix="/upload", tags=["upload"])
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 
 @router.post("")
 async def upload_reviews(
+    background_tasks: BackgroundTasks,
     product_name: str = Form(...),
     file: UploadFile = File(...),
 ) -> dict:
@@ -34,55 +36,20 @@ async def upload_reviews(
             detail=str(exc),
         ) from exc
 
-    predictor = DummySentimentPredictor()
-    predictions = predictor.predict_sentiments([row.review_text for row in rows])
-
-    summary = _build_summary(predictions)
-    trends = _build_trends(rows, predictions)
+    analysis_id = str(uuid4())
+    analysis_run = create_analysis_run(
+        analysis_id=analysis_id,
+        product_name=product_name,
+        file_name=file.filename,
+        total_reviews=len(rows),
+    )
+    background_tasks.add_task(process_analysis, analysis_id, rows)
 
     return {
+        "analysis_id": analysis_run["analysis_id"],
         "product_name": product_name,
         "file_name": file.filename,
         "total_reviews": len(rows),
-        "summary": summary,
-        "trends": trends,
-        "sample_predictions": predictions[:10],
+        "status": analysis_run["status"],
+        "progress": analysis_run["progress"],
     }
-
-
-def _build_summary(predictions: list[dict]) -> dict:
-    counts = Counter(prediction["sentiment"] for prediction in predictions)
-    total = len(predictions)
-
-    positive = counts.get("positive", 0)
-    neutral = counts.get("neutral", 0)
-    negative = counts.get("negative", 0)
-    satisfaction_score = round(((positive + (neutral * 0.5)) / total) * 100) if total else 0
-
-    return {
-        "positive": positive,
-        "neutral": neutral,
-        "negative": negative,
-        "positive_percentage": round((positive / total) * 100, 1) if total else 0,
-        "neutral_percentage": round((neutral / total) * 100, 1) if total else 0,
-        "negative_percentage": round((negative / total) * 100, 1) if total else 0,
-        "satisfaction_score": satisfaction_score,
-    }
-
-
-def _build_trends(rows: list, predictions: list[dict]) -> list[dict]:
-    grouped: dict[str, Counter] = defaultdict(Counter)
-
-    for row, prediction in zip(rows, predictions):
-        period = row.review_date or "Tidak diketahui"
-        grouped[period][prediction["sentiment"]] += 1
-
-    return [
-        {
-            "period": period,
-            "positive": counts.get("positive", 0),
-            "neutral": counts.get("neutral", 0),
-            "negative": counts.get("negative", 0),
-        }
-        for period, counts in grouped.items()
-    ]
