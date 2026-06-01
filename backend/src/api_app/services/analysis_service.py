@@ -1,5 +1,11 @@
 from collections import Counter, defaultdict
 
+from src.api_app.services.insight_service import (
+    build_aspect_insights,
+    build_complaints,
+    build_recommendations,
+    build_strengths,
+)
 from src.ml.dummy_predictor import DummySentimentPredictor
 from src.shared.analysis_store import update_analysis_run
 from src.utils.csv_reader import ReviewRow
@@ -18,9 +24,18 @@ def process_analysis(analysis_id: str, rows: list[ReviewRow]) -> None:
             processed_reviews=len(rows),
         )
 
+        aspect_insights = build_aspect_insights(rows, predictions)
+        complaints = build_complaints(rows, predictions)
+        strengths = build_strengths(rows, predictions)
+        recommendations = build_recommendations(complaints, aspect_insights)
+
         result = {
             "summary": _build_summary(predictions),
             "trends": _build_trends(rows, predictions),
+            "aspect_insights": aspect_insights,
+            "complaints": complaints,
+            "strengths": strengths,
+            "recommendations": recommendations,
             "sample_predictions": predictions[:10],
         }
 
