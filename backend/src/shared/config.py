@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_prefix: str = "/api"
     cors_origins: str = "http://localhost:3000"
+    database_url: str = "postgresql+psycopg://postgres:password@localhost:5432/sentix"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
