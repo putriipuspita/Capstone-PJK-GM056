@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from src.shared.models import AnalysisResult, AnalysisRun, Review
@@ -35,6 +36,30 @@ def get_analysis_run(db: Session, *, analysis_run_id: str) -> AnalysisRun | None
             selectinload(AnalysisRun.result),
         ],
     )
+
+
+def list_analysis_history(
+    db: Session,
+    *,
+    user_id: str,
+    product_name: str | None = None,
+) -> list[AnalysisRun]:
+    statement = (
+        select(AnalysisRun)
+        .join(AnalysisRun.product)
+        .options(
+            selectinload(AnalysisRun.product),
+            selectinload(AnalysisRun.dataset),
+            selectinload(AnalysisRun.result),
+        )
+        .where(AnalysisRun.product.has(user_id=user_id))
+        .order_by(AnalysisRun.created_at.desc())
+    )
+
+    if product_name:
+        statement = statement.where(AnalysisRun.product.has(name=product_name))
+
+    return list(db.execute(statement).scalars().all())
 
 
 def update_analysis_status(
