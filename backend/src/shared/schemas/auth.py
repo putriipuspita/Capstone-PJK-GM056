@@ -16,6 +16,11 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class ResetPasswordRequest(BaseModel):
+    token_hash: str = Field(min_length=1)
+    password: str = Field(min_length=6)
+
+
 class AuthUserResponse(BaseModel):
     id: str
     email: str

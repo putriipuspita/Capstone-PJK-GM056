@@ -7,6 +7,7 @@ from src.api_app.services.auth_service import (
     login_user,
     register_user,
     request_password_reset,
+    reset_password,
 )
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
@@ -16,6 +17,7 @@ from src.shared.schemas.auth import (
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResetPasswordRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,6 +42,12 @@ def login(payload: LoginRequest) -> AuthSessionResponse:
 def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     request_password_reset(email=payload.email)
     return MessageResponse(message="Link reset password telah dikirim jika email terdaftar.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_user_password(payload: ResetPasswordRequest) -> MessageResponse:
+    reset_password(token_hash=payload.token_hash, password=payload.password)
+    return MessageResponse(message="Password berhasil diubah.")
 
 
 @router.get("/callback")

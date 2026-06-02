@@ -95,6 +95,31 @@ def request_password_reset(*, email: str) -> None:
         ) from exc
 
 
+def reset_password(*, token_hash: str, password: str) -> None:
+    client = get_supabase_auth_client()
+    try:
+        response = client.auth.verify_otp(
+            {
+                "token_hash": token_hash,
+                "type": "recovery",
+            }
+        )
+        if not response.session:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token reset password tidak valid.",
+            )
+
+        client.auth.set_session(response.session.access_token, response.session.refresh_token)
+        client.auth.update_user({"password": password})
+        client.auth.sign_out()
+    except AuthApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Reset password gagal: {exc}",
+        ) from exc
+
+
 def handle_auth_callback(*, token_hash: str, verify_type: str = "email") -> str:
     try:
         get_supabase_auth_client().auth.verify_otp(
