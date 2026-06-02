@@ -12,6 +12,7 @@ def build_history_item(analysis_run: AnalysisRun) -> dict:
         "satisfaction_score": satisfaction_score,
         "quality_status": _build_quality_status(satisfaction_score),
         "process_status": analysis_run.status,
+        "process_status_label": _build_process_status_label(analysis_run.status),
     }
 
 
@@ -33,3 +34,13 @@ def _build_quality_status(score: int | None) -> str | None:
     if score >= 50:
         return "Cukup"
     return "Buruk"
+
+
+def _build_process_status_label(status: str) -> str:
+    labels = {
+        "queued": "Menunggu",
+        "processing": "Sedang Dianalisis",
+        "completed": "Selesai",
+        "failed": "Gagal",
+    }
+    return labels.get(status, status)

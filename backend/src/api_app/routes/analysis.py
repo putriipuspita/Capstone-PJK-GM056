@@ -12,6 +12,7 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 @router.get("/history")
 def get_analysis_history(
     status_filter: str | None = None,
+    quality_status_filter: str | None = None,
     product_name: str | None = None,
     db: Session = Depends(get_db),
 ) -> list[dict]:
@@ -26,10 +27,22 @@ def get_analysis_history(
         history = [
             item
             for item in history
-            if item["quality_status"] and item["quality_status"].lower() == status_filter.lower()
+            if _matches_process_status(item, status_filter)
+        ]
+
+    if quality_status_filter and quality_status_filter.lower() != "semua":
+        history = [
+            item
+            for item in history
+            if item["quality_status"] and item["quality_status"].lower() == quality_status_filter.lower()
         ]
 
     return history
+
+
+def _matches_process_status(item: dict, status_filter: str) -> bool:
+    normalized = status_filter.lower()
+    return item["process_status"].lower() == normalized or item["process_status_label"].lower() == normalized
 
 
 @router.get("/{analysis_id}/status")
