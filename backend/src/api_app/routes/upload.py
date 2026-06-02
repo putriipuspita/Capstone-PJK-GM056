@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy.orm import Session
 
 from src.api_app.services.analysis_service import process_analysis
-from src.shared.config import settings
+from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.repositories.analysis_repository import create_analysis_run
 from src.shared.repositories.dataset_repository import create_dataset, create_reviews
@@ -19,6 +19,7 @@ async def upload_reviews(
     product_name: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(
@@ -43,9 +44,9 @@ async def upload_reviews(
 
     user_profile = get_or_create_user_profile(
         db,
-        user_id=settings.dev_user_id,
-        store_name=settings.dev_store_name,
-        email=settings.dev_user_email,
+        user_id=current_user.user_id,
+        store_name=current_user.store_name,
+        email=current_user.email,
     )
     product = get_or_create_product(db, user_id=user_profile.user_id, product_name=product_name)
     storage_path = upload_csv_file(

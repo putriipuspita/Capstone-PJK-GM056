@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.api_app.services.history_service import build_history_item
-from src.shared.config import settings
+from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.repositories.analysis_repository import get_analysis_run, list_analysis_history
 
@@ -15,10 +15,11 @@ def get_analysis_history(
     quality_status_filter: str | None = None,
     product_name: str | None = None,
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> list[dict]:
     analysis_runs = list_analysis_history(
         db,
-        user_id=settings.dev_user_id,
+        user_id=current_user.user_id,
         product_name=product_name,
     )
     history = [build_history_item(analysis_run) for analysis_run in analysis_runs]
