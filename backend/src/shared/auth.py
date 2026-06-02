@@ -4,7 +4,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.shared.config import settings
-from src.shared.storage import get_supabase_client
+from src.shared.storage import get_supabase_auth_client
 
 
 security = HTTPBearer(auto_error=False)
@@ -22,7 +22,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
         credentials = None
 
     if credentials:
-        user = get_supabase_client().auth.get_user(credentials.credentials).user
+        user = get_supabase_auth_client().auth.get_user(credentials.credentials).user
         email = user.email or settings.dev_user_email
         store_name = user.user_metadata.get("store_name") or user.user_metadata.get("namaToko") or email
         return CurrentUser(user_id=user.id, email=email, store_name=store_name)

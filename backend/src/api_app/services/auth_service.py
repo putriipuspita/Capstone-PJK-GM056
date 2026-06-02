@@ -1,18 +1,23 @@
 from fastapi import HTTPException, status
+from gotrue.errors import AuthApiError
 from sqlalchemy.orm import Session
 
+from src.shared.config import settings
 from src.shared.repositories.product_repository import get_or_create_user_profile
 from src.shared.schemas.auth import AuthSessionResponse, AuthUserResponse
-from src.shared.storage import get_supabase_client
+from src.shared.storage import get_supabase_auth_client
 
 
 def register_user(db: Session, *, store_name: str, email: str, password: str) -> AuthUserResponse:
     try:
-        response = get_supabase_client().auth.sign_up(
+        response = get_supabase_auth_client().auth.sign_up(
             {
                 "email": email,
                 "password": password,
-                "options": {"data": {"store_name": store_name}},
+                "options": {
+                    "data": {"store_name": store_name},
+                    "email_redirect_to": settings.auth_callback_url,
+                },
             }
         )
     except Exception as exc:
@@ -44,7 +49,7 @@ def register_user(db: Session, *, store_name: str, email: str, password: str) ->
 
 def login_user(*, email: str, password: str) -> AuthSessionResponse:
     try:
-        response = get_supabase_client().auth.sign_in_with_password(
+        response = get_supabase_auth_client().auth.sign_in_with_password(
             {
                 "email": email,
                 "password": password,
@@ -77,9 +82,31 @@ def login_user(*, email: str, password: str) -> AuthSessionResponse:
 
 def request_password_reset(*, email: str) -> None:
     try:
-        get_supabase_client().auth.reset_password_for_email(email)
+        get_supabase_auth_client().auth.reset_password_for_email(
+            email,
+            {
+                "redirect_to": settings.auth_callback_url,
+            },
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Permintaan reset password gagal: {exc}",
         ) from exc
+
+
+def handle_auth_callback(*, token_hash: str, verify_type: str = "email") -> str:
+    try:
+        get_supabase_auth_client().auth.verify_otp(
+            {
+                "token_hash": token_hash,
+                "type": verify_type,
+            }
+        )
+    except AuthApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Verifikasi auth gagal: {exc}",
+        ) from exc
+
+    return f"{settings.frontend_public_url.rstrip()}/auth/login?verified=1"

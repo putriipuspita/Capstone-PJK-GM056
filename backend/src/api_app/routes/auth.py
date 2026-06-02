@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from src.api_app.services.auth_service import login_user, register_user, request_password_reset
+from src.api_app.services.auth_service import (
+    handle_auth_callback,
+    login_user,
+    register_user,
+    request_password_reset,
+)
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
     AuthSessionResponse,
@@ -34,3 +40,9 @@ def login(payload: LoginRequest) -> AuthSessionResponse:
 def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     request_password_reset(email=payload.email)
     return MessageResponse(message="Link reset password telah dikirim jika email terdaftar.")
+
+
+@router.get("/callback")
+def auth_callback(token_hash: str, type: str = "email") -> RedirectResponse:
+    redirect_url = handle_auth_callback(token_hash=token_hash, verify_type=type)
+    return RedirectResponse(url=redirect_url)
