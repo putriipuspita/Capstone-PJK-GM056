@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from src.api_app.services.history_service import build_history_item
 from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
-from src.shared.repositories.analysis_repository import get_analysis_run, list_analysis_history
+from src.shared.repositories.analysis_repository import get_analysis_run_for_user, list_analysis_history
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -47,8 +47,16 @@ def _matches_process_status(item: dict, status_filter: str) -> bool:
 
 
 @router.get("/{analysis_id}/status")
-def get_analysis_status(analysis_id: str, db: Session = Depends(get_db)) -> dict:
-    analysis_run = get_analysis_run(db, analysis_run_id=analysis_id)
+def get_analysis_status(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    analysis_run = get_analysis_run_for_user(
+        db,
+        analysis_run_id=analysis_id,
+        user_id=current_user.user_id,
+    )
     if not analysis_run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -66,8 +74,16 @@ def get_analysis_status(analysis_id: str, db: Session = Depends(get_db)) -> dict
 
 
 @router.get("/{analysis_id}")
-def get_analysis_result(analysis_id: str, db: Session = Depends(get_db)) -> dict:
-    analysis_run = get_analysis_run(db, analysis_run_id=analysis_id)
+def get_analysis_result(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    analysis_run = get_analysis_run_for_user(
+        db,
+        analysis_run_id=analysis_id,
+        user_id=current_user.user_id,
+    )
     if not analysis_run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

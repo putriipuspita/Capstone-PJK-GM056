@@ -38,6 +38,29 @@ def get_analysis_run(db: Session, *, analysis_run_id: str) -> AnalysisRun | None
     )
 
 
+def get_analysis_run_for_user(
+    db: Session,
+    *,
+    analysis_run_id: str,
+    user_id: str,
+) -> AnalysisRun | None:
+    statement = (
+        select(AnalysisRun)
+        .join(AnalysisRun.product)
+        .options(
+            selectinload(AnalysisRun.product),
+            selectinload(AnalysisRun.dataset),
+            selectinload(AnalysisRun.result),
+        )
+        .where(
+            AnalysisRun.id == analysis_run_id,
+            AnalysisRun.product.has(user_id=user_id),
+        )
+    )
+
+    return db.execute(statement).scalar_one_or_none()
+
+
 def list_analysis_history(
     db: Session,
     *,
