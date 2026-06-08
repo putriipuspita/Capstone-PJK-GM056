@@ -42,7 +42,12 @@ const dataKeluhanUtama = [
 // Fungsi Pindah Halaman 
 export default function Dashboard() {
   const [halamanSaatIni, setHalamanSaatIni] = React.useState(1);
+  const [isMounted, setIsMounted] = React.useState(false);
   const itemPerHalaman = 5;
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Data Dummy untuk Tabel Ringkasan Perbandingan Produk
   const dataTabelMentah = [
@@ -268,32 +273,37 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-6 xl:gap-8">
             {/* Container Grafik PieChart */}
             <div className="w-[160px] h-[160px] lg:w-[180px] lg:h-[180px] relative flex-shrink-0">
+              {isMounted ? (
+                <>
+                  {/* Grafik PieChart */}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                      <Pie
+                        data={dataDonat}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="65%"
+                        outerRadius="90%"
+                        paddingAngle={2}
+                        dataKey="value"
+                        strokeWidth={0}
+                      >
+                        {dataDonat.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
 
-              {/* Grafik PieChart */}
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                  <Pie
-                    data={dataDonat}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="65%"
-                    outerRadius="90%"
-                    paddingAngle={2}
-                    dataKey="value"
-                    strokeWidth={0}
-                  >
-                    {dataDonat.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-
-              {/* Isi Pie Chart */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-xl lg:text-2xl font-black text-slate-800 leading-none">1.939</p>
-                <p className="text-[0.55rem] lg:text-[0.6rem] text-gray-400 font-bold capitalize mt-1">Total ulasan</p>
-              </div>
+                  {/* Isi Pie Chart */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-xl lg:text-2xl font-black text-slate-800 leading-none">1.939</p>
+                    <p className="text-[0.55rem] lg:text-[0.6rem] text-gray-400 font-bold capitalize mt-1">Total ulasan</p>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full rounded-full border-4 border-slate-100 border-t-indigo-500 animate-spin"></div>
+              )}
             </div>
 
             {/* Container Legenda & Persentase */}

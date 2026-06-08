@@ -71,7 +71,7 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
             e.stopPropagation();
             props.onToggleSidebar?.();
           }}
-          className="xl:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+          className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
           aria-label="Menu"
         >
 

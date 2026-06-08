@@ -15,7 +15,7 @@ export default function TataLetakDashboard({
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar Wrapper - Handles Responsive Visibility */}
       <div className={`
-        fixed inset-y-0 left-0 z-[1000] transform transition-transform duration-300 ease-in-out xl:relative xl:translate-x-0
+        fixed inset-y-0 left-0 z-[1000] transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <Sidebar onClose={() => setIsSidebarOpen(false)} />

@@ -30,7 +30,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         {/* Tombol Tutup Hanya Muncul di iPad/HP */}
         <button
           onClick={onClose}
-          className="xl:hidden p-2 hover:bg-white/10 rounded-lg text-white/70 transition-colors"
+          className="lg:hidden p-2 hover:bg-white/10 rounded-lg text-white/70 transition-colors"
         >
 
           {/* Icon Tanda Silang */}
