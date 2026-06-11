@@ -1,15 +1,15 @@
 const BagianTestimoni = () => {
   return (
     // Testimoni
-    <section id="testimoni" className="pt-10 pb-10 bg-white overflow-hidden">
+    <section id="testimoni" className="pt-10 pb-10 px-[5%] bg-white overflow-hidden">
+      <div className="max-w-[1280px] mx-auto w-full">
+        {/* Judul */}
+        <div className="max-w-4xl mx-auto mb-10 text-center">
+          <h2 className="text-4xl font-black text-hero uppercase">Testimoni</h2>
+        </div>
 
-      {/* Judul */}
-      <div className="max-w-4xl mx-auto mb-6 text-center">
-        <h2 className="text-4xl font-black text-hero uppercase">Testimoni</h2>
-      </div>
-
-      {/* Isi Testimoni */}
-      <div className="relative flex">
+        {/* Isi Testimoni */}
+        <div className="relative flex overflow-hidden">
         {/* Container Animasi Marquee */}
         <div className="flex gap-8 animate-marquee whitespace-nowrap">
 
@@ -79,7 +79,8 @@ const BagianTestimoni = () => {
           ))}
         </div>
       </div>
-    </section>
+    </div>
+  </section>
   );
 };
 

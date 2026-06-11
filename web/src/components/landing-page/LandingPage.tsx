@@ -15,9 +15,11 @@ export default function HalamanUtamaLanding() {
 
       {/* Footer*/}
       <footer className="bg-navbar text-white py-3 px-[5%] text-center border-t border-white/5 relative z-10">
-        <p className="opacity-60 text-[0.85rem]">
-          &copy; Copyright Capstone Pijak 2026
-        </p>
+        <div className="max-w-[1280px] mx-auto w-full">
+          <p className="opacity-60 text-[0.85rem]">
+            &copy; Copyright Capstone Pijak 2026
+          </p>
+        </div>
       </footer>
     </div>
   );
