@@ -33,6 +33,30 @@ const GrafikTrenSentimen: React.FC<GrafikTrenSentimenProps> = ({
   className = '',
   rounded = 'rounded-3xl',
 }) => {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className={`bg-white p-8 ${rounded} shadow-sm border border-gray-100 ${className}`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">{title}</h3>
+            {subtitle && (
+              <p className="text-xs text-slate-400 font-medium mt-1">{subtitle}</p>
+            )}
+          </div>
+        </div>
+        <div className="h-[240px] w-full animate-pulse bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 text-sm font-medium">
+          Memuat Grafik...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`bg-white p-8 ${rounded} shadow-sm border border-gray-100 ${className}`}>
       {/* Container Judul & Legenda */}
