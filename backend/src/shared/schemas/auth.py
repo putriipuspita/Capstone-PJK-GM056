@@ -16,6 +16,10 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class ResetPasswordRequest(BaseModel):
     token_hash: str = Field(min_length=1)
     password: str = Field(min_length=6, max_length=72)
@@ -40,3 +44,5 @@ class MessageResponse(BaseModel):
     message: str
     reset_token: str | None = None
     reset_url: str | None = None
+    verification_token: str | None = None
+    verification_url: str | None = None

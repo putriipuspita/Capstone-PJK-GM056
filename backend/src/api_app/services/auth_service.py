@@ -221,6 +221,51 @@ def request_password_reset(*, email: str, db: Session | None = None) -> MessageR
     return None
 
 
+def request_email_verification(*, email: str, db: Session | None = None) -> MessageResponse:
+    if settings.auth_provider != "local":
+        return MessageResponse(message="Jika email terdaftar dan belum diverifikasi, link verifikasi akan dikirim.")
+
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database session diperlukan untuk verifikasi email local.",
+        )
+
+    normalized_email = email.lower()
+    user_profile = get_user_profile_by_email(db, email=normalized_email)
+    if not user_profile or user_profile.is_email_verified:
+        return MessageResponse(message="Jika email terdaftar dan belum diverifikasi, link verifikasi akan dikirim.")
+
+    verification_token = create_plain_token()
+    create_email_verification_token(
+        db,
+        user_id=user_profile.user_id,
+        token_hash=hash_token(verification_token),
+        expires_at=token_expires_at(),
+    )
+    verification_url = f"{settings.auth_callback_url}?token_hash={verification_token}&type=email"
+
+    try:
+        send_verification_email(to_email=user_profile.email, verification_url=verification_url)
+    except EmailSendError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+
+    db.commit()
+
+    if is_email_enabled():
+        return MessageResponse(message="Jika email terdaftar dan belum diverifikasi, link verifikasi akan dikirim.")
+
+    return MessageResponse(
+        message="Token verifikasi email dibuat.",
+        verification_token=verification_token,
+        verification_url=verification_url,
+    )
+
+
 def request_local_password_reset(db: Session, *, email: str) -> MessageResponse:
     normalized_email = email.lower()
     user_profile = get_user_profile_by_email(db, email=normalized_email)

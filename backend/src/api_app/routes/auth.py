@@ -6,6 +6,7 @@ from src.api_app.services.auth_service import (
     handle_auth_callback,
     login_user,
     register_user,
+    request_email_verification,
     request_password_reset,
     reset_password,
 )
@@ -18,6 +19,7 @@ from src.shared.schemas.auth import (
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
 )
 
@@ -54,6 +56,11 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     if response:
         return response
     return MessageResponse(message="Link reset password telah dikirim jika email terdaftar.")
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+def resend_verification(payload: ResendVerificationRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    return request_email_verification(email=payload.email, db=db)
 
 
 @router.post("/reset-password", response_model=MessageResponse)
