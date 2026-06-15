@@ -53,6 +53,12 @@ class AuthSessionResponse(BaseModel):
     user: AuthUserResponse
 
 
+class AuthSessionItem(BaseModel):
+    id: str
+    created_at: str
+    expires_at: str
+
+
 class MessageResponse(BaseModel):
     message: str
     reset_token: str | None = None

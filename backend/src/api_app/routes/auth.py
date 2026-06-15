@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from src.api_app.services.auth_service import (
     change_local_password,
     handle_auth_callback,
+    list_local_sessions,
     login_user,
     logout_all_local_sessions,
     logout_local_session,
@@ -18,6 +19,7 @@ from src.api_app.services.auth_service import (
 from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
+    AuthSessionItem,
     AuthSessionResponse,
     AuthUserResponse,
     ChangePasswordRequest,
@@ -89,6 +91,14 @@ def logout_all(
 ) -> MessageResponse:
     logout_all_local_sessions(db, user_id=current_user.user_id)
     return MessageResponse(message="Semua sesi berhasil logout.")
+
+
+@router.get("/sessions", response_model=list[AuthSessionItem])
+def list_sessions(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> list[AuthSessionItem]:
+    return list_local_sessions(db, user_id=current_user.user_id)
 
 
 @router.post("/change-password", response_model=MessageResponse)

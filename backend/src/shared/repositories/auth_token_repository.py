@@ -98,6 +98,19 @@ def get_valid_refresh_token_session(db: Session, *, token_hash: str) -> RefreshT
     return db.execute(statement).scalar_one_or_none()
 
 
+def list_active_refresh_token_sessions(db: Session, *, user_id: str) -> list[RefreshTokenSession]:
+    statement = (
+        select(RefreshTokenSession)
+        .where(
+            RefreshTokenSession.user_id == user_id,
+            RefreshTokenSession.revoked_at.is_(None),
+            RefreshTokenSession.expires_at > datetime.utcnow(),
+        )
+        .order_by(RefreshTokenSession.created_at.desc())
+    )
+    return list(db.execute(statement).scalars().all())
+
+
 def revoke_refresh_token_session(db: Session, *, refresh_token_session: RefreshTokenSession) -> None:
     refresh_token_session.revoked_at = datetime.utcnow()
     db.flush()

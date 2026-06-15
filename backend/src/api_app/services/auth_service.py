@@ -16,6 +16,7 @@ from src.shared.repositories.auth_token_repository import (
     get_valid_email_verification_token,
     get_valid_password_reset_token,
     get_valid_refresh_token_session,
+    list_active_refresh_token_sessions,
     mark_email_verification_token_used,
     mark_password_reset_token_used,
     revoke_refresh_token_session,
@@ -23,7 +24,7 @@ from src.shared.repositories.auth_token_repository import (
 )
 from src.shared.repositories.product_repository import get_or_create_user_profile
 from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email, update_user_profile
-from src.shared.schemas.auth import AuthSessionResponse, AuthUserResponse, MessageResponse
+from src.shared.schemas.auth import AuthSessionItem, AuthSessionResponse, AuthUserResponse, MessageResponse
 from src.shared.security import (
     create_access_token,
     create_plain_token,
@@ -299,6 +300,24 @@ def logout_all_local_sessions(db: Session, *, user_id: str) -> None:
     delete_expired_auth_tokens(db)
     revoke_user_refresh_token_sessions(db, user_id=user_id)
     db.commit()
+
+
+def list_local_sessions(db: Session, *, user_id: str) -> list[AuthSessionItem]:
+    if settings.auth_provider != "local":
+        return []
+
+    delete_expired_auth_tokens(db)
+    sessions = list_active_refresh_token_sessions(db, user_id=user_id)
+    db.commit()
+
+    return [
+        AuthSessionItem(
+            id=session.id,
+            created_at=session.created_at.isoformat(),
+            expires_at=session.expires_at.isoformat(),
+        )
+        for session in sessions
+    ]
 
 
 def change_local_password(
