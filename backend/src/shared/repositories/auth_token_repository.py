@@ -78,10 +78,14 @@ def create_refresh_token_session(
     user_id: str,
     token_hash: str,
     expires_at: datetime,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
 ) -> RefreshTokenSession:
     refresh_token_session = RefreshTokenSession(
         user_id=user_id,
         token_hash=token_hash,
+        ip_address=ip_address,
+        user_agent=user_agent,
         expires_at=expires_at,
     )
     db.add(refresh_token_session)
@@ -109,6 +113,21 @@ def list_active_refresh_token_sessions(db: Session, *, user_id: str) -> list[Ref
         .order_by(RefreshTokenSession.created_at.desc())
     )
     return list(db.execute(statement).scalars().all())
+
+
+def get_active_refresh_token_session_by_id(
+    db: Session,
+    *,
+    user_id: str,
+    session_id: str,
+) -> RefreshTokenSession | None:
+    statement = select(RefreshTokenSession).where(
+        RefreshTokenSession.id == session_id,
+        RefreshTokenSession.user_id == user_id,
+        RefreshTokenSession.revoked_at.is_(None),
+        RefreshTokenSession.expires_at > datetime.utcnow(),
+    )
+    return db.execute(statement).scalar_one_or_none()
 
 
 def revoke_refresh_token_session(db: Session, *, refresh_token_session: RefreshTokenSession) -> None:

@@ -13,6 +13,7 @@ from src.shared.repositories.auth_token_repository import (
     create_password_reset_token,
     create_refresh_token_session,
     delete_expired_auth_tokens,
+    get_active_refresh_token_session_by_id,
     get_valid_email_verification_token,
     get_valid_password_reset_token,
     get_valid_refresh_token_session,
@@ -134,14 +135,21 @@ def register_local_user(db: Session, *, store_name: str, email: str, password: s
     )
 
 
-def login_user(*, email: str, password: str, db: Session | None = None) -> AuthSessionResponse:
+def login_user(
+    *,
+    email: str,
+    password: str,
+    db: Session | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> AuthSessionResponse:
     if settings.auth_provider == "local":
         if db is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database session diperlukan untuk login local.",
             )
-        return login_local_user(db, email=email, password=password)
+        return login_local_user(db, email=email, password=password, ip_address=ip_address, user_agent=user_agent)
 
     return login_supabase_user(email=email, password=password)
 
@@ -179,7 +187,14 @@ def login_supabase_user(*, email: str, password: str) -> AuthSessionResponse:
     )
 
 
-def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionResponse:
+def login_local_user(
+    db: Session,
+    *,
+    email: str,
+    password: str,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> AuthSessionResponse:
     delete_expired_auth_tokens(db)
     normalized_email = email.lower()
     user_profile = get_user_profile_by_email(db, email=normalized_email)
@@ -208,6 +223,8 @@ def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionRe
         user_id=user_profile.user_id,
         token_hash=hash_token(refresh_token),
         expires_at=refresh_token_expires_at(),
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
     db.commit()
 
@@ -222,7 +239,13 @@ def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionRe
     )
 
 
-def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResponse:
+def refresh_local_session(
+    db: Session,
+    *,
+    refresh_token: str,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> AuthSessionResponse:
     if settings.auth_provider != "local":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -268,6 +291,8 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
         user_id=user_profile.user_id,
         token_hash=hash_token(new_refresh_token),
         expires_at=refresh_token_expires_at(),
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
     db.commit()
 
@@ -302,6 +327,26 @@ def logout_all_local_sessions(db: Session, *, user_id: str) -> None:
     db.commit()
 
 
+def revoke_local_session(db: Session, *, user_id: str, session_id: str) -> None:
+    if settings.auth_provider != "local":
+        return
+
+    delete_expired_auth_tokens(db)
+    refresh_token_session = get_active_refresh_token_session_by_id(
+        db,
+        user_id=user_id,
+        session_id=session_id,
+    )
+    if not refresh_token_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sesi tidak ditemukan.",
+        )
+
+    revoke_refresh_token_session(db, refresh_token_session=refresh_token_session)
+    db.commit()
+
+
 def list_local_sessions(db: Session, *, user_id: str) -> list[AuthSessionItem]:
     if settings.auth_provider != "local":
         return []
@@ -313,6 +358,8 @@ def list_local_sessions(db: Session, *, user_id: str) -> list[AuthSessionItem]:
     return [
         AuthSessionItem(
             id=session.id,
+            ip_address=session.ip_address,
+            user_agent=session.user_agent,
             created_at=session.created_at.isoformat(),
             expires_at=session.expires_at.isoformat(),
         )

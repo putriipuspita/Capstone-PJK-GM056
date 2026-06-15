@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from src.api_app.services.analysis_service import process_analysis
 from src.shared.auth import CurrentUser, get_current_user
+from src.shared.config import settings
 from src.shared.database import get_db
 from src.shared.repositories.analysis_repository import create_analysis_run
 from src.shared.repositories.dataset_repository import create_dataset, create_reviews
@@ -28,6 +29,12 @@ async def upload_reviews(
         )
 
     content = await file.read()
+    max_upload_size_bytes = settings.max_upload_size_mb * 1024 * 1024
+    if len(content) > max_upload_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Ukuran file maksimal {settings.max_upload_size_mb} MB.",
+        )
 
     try:
         rows = parse_review_csv(content)
@@ -41,6 +48,12 @@ async def upload_reviews(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+
+    if len(rows) > settings.max_upload_reviews:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Jumlah review maksimal {settings.max_upload_reviews}.",
+        )
 
     user_profile = get_or_create_user_profile(
         db,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from src.api_app.services.auth_service import (
     request_email_verification,
     request_password_reset,
     refresh_local_session,
+    revoke_local_session,
     reset_password,
     update_profile,
 )
@@ -47,8 +48,14 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthUse
 
 
 @router.post("/login", response_model=AuthSessionResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
-    return login_user(email=payload.email, password=payload.password, db=db)
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> AuthSessionResponse:
+    return login_user(
+        email=payload.email,
+        password=payload.password,
+        db=db,
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
 
 
 @router.get("/me", response_model=AuthUserResponse)
@@ -74,8 +81,13 @@ def update_me(
 
 
 @router.post("/refresh", response_model=AuthSessionResponse)
-def refresh_session(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
-    return refresh_local_session(db, refresh_token=payload.refresh_token)
+def refresh_session(payload: RefreshTokenRequest, request: Request, db: Session = Depends(get_db)) -> AuthSessionResponse:
+    return refresh_local_session(
+        db,
+        refresh_token=payload.refresh_token,
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
 
 
 @router.post("/logout", response_model=MessageResponse)
@@ -99,6 +111,16 @@ def list_sessions(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[AuthSessionItem]:
     return list_local_sessions(db, user_id=current_user.user_id)
+
+
+@router.delete("/sessions/{session_id}", response_model=MessageResponse)
+def revoke_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> MessageResponse:
+    revoke_local_session(db, user_id=current_user.user_id, session_id=session_id)
+    return MessageResponse(message="Sesi berhasil logout.")
 
 
 @router.post("/change-password", response_model=MessageResponse)
@@ -139,3 +161,10 @@ def reset_user_password(payload: ResetPasswordRequest, db: Session = Depends(get
 def auth_callback(token_hash: str, type: str = "email") -> RedirectResponse:
     redirect_url = handle_auth_callback(token_hash=token_hash, verify_type=type)
     return RedirectResponse(url=redirect_url)
+
+
+def _client_ip(request: Request) -> str | None:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host if request.client else None

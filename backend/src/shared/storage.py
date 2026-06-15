@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 from supabase import Client, create_client
@@ -30,6 +31,9 @@ def get_supabase_auth_client() -> Client:
 
 def upload_csv_file(*, content: bytes, file_name: str, user_id: str, product_id: str) -> str:
     storage_path = _build_storage_path(file_name=file_name, user_id=user_id, product_id=product_id)
+    if settings.storage_provider == "local":
+        return _upload_csv_file_to_local(content=content, storage_path=storage_path)
+
     client = get_supabase_service_client()
     client.storage.from_(settings.supabase_storage_bucket).upload(
         path=storage_path,
@@ -40,6 +44,13 @@ def upload_csv_file(*, content: bytes, file_name: str, user_id: str, product_id:
         },
     )
     return storage_path
+
+
+def _upload_csv_file_to_local(*, content: bytes, storage_path: str) -> str:
+    upload_path = Path(settings.upload_dir) / storage_path
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(content)
+    return str(upload_path).replace("\\", "/")
 
 
 def _build_storage_path(*, file_name: str, user_id: str, product_id: str) -> str:
