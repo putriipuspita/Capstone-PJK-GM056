@@ -26,9 +26,8 @@ def get_sentiment_predictor() -> SentimentPredictor:
         return DummySentimentPredictor()
 
     if provider == "indobert":
-        raise RuntimeError(
-            "Provider indobert belum tersedia. Tetap gunakan SENTIMENT_PREDICTOR_PROVIDER=dummy "
-            "sampai model IndoBERT final siap untuk inference."
-        )
+        from src.ml.indobert_predictor import IndoBertSentimentPredictor
+
+        return IndoBertSentimentPredictor()
 
     raise RuntimeError(f"Provider sentiment tidak dikenal: {settings.sentiment_predictor_provider}.")
