@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_upload_size_mb: int = 20
     max_upload_reviews: int = 100000
+    sentiment_predictor_provider: str = "dummy"
+    sentiment_batch_size: int = 256
     jwt_secret_key: str = "change-this-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440

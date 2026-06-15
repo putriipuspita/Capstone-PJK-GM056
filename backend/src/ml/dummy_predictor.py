@@ -1,6 +1,9 @@
+from src.ml.predictor import SentimentPrediction
+
+
 class DummySentimentPredictor:
-    def predict_sentiments(self, texts: list[str]) -> list[dict]:
-        predictions: list[dict] = []
+    def predict_sentiments(self, texts: list[str]) -> list[SentimentPrediction]:
+        predictions: list[SentimentPrediction] = []
 
         for text in texts:
             lowered = text.lower()
