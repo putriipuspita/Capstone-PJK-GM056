@@ -29,6 +29,15 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str = Field(min_length=1)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=72)
+    new_password: str = Field(min_length=6, max_length=72)
+
+
+class UpdateProfileRequest(BaseModel):
+    store_name: str = Field(min_length=2, max_length=255)
+
+
 class AuthUserResponse(BaseModel):
     id: str
     email: str

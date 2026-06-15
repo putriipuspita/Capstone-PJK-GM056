@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from src.api_app.services.auth_service import (
+    change_local_password,
     handle_auth_callback,
     login_user,
     register_user,
@@ -10,12 +11,14 @@ from src.api_app.services.auth_service import (
     request_password_reset,
     refresh_local_session,
     reset_password,
+    update_profile,
 )
 from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
     AuthSessionResponse,
     AuthUserResponse,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
@@ -23,6 +26,7 @@ from src.shared.schemas.auth import (
     RegisterRequest,
     ResendVerificationRequest,
     ResetPasswordRequest,
+    UpdateProfileRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -52,9 +56,37 @@ def get_me(current_user: CurrentUser = Depends(get_current_user)) -> AuthUserRes
     )
 
 
+@router.patch("/me", response_model=AuthUserResponse)
+def update_me(
+    payload: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> AuthUserResponse:
+    return update_profile(
+        db,
+        user_id=current_user.user_id,
+        store_name=payload.store_name,
+    )
+
+
 @router.post("/refresh", response_model=AuthSessionResponse)
 def refresh_session(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
     return refresh_local_session(db, refresh_token=payload.refresh_token)
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> MessageResponse:
+    change_local_password(
+        db,
+        user_id=current_user.user_id,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    return MessageResponse(message="Password berhasil diubah.")
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

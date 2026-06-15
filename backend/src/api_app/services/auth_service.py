@@ -17,7 +17,7 @@ from src.shared.repositories.auth_token_repository import (
     mark_password_reset_token_used,
 )
 from src.shared.repositories.product_repository import get_or_create_user_profile
-from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email
+from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email, update_user_profile
 from src.shared.schemas.auth import AuthSessionResponse, AuthUserResponse, MessageResponse
 from src.shared.security import (
     create_access_token,
@@ -247,6 +247,59 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
             email=user_profile.email,
             store_name=user_profile.store_name,
         ),
+    )
+
+
+def change_local_password(
+    db: Session,
+    *,
+    user_id: str,
+    current_password: str,
+    new_password: str,
+) -> None:
+    if settings.auth_provider != "local":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ubah password backend hanya tersedia untuk auth local.",
+        )
+
+    user_profile = db.get(UserProfile, user_id)
+    if not user_profile or not user_profile.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User tidak ditemukan.",
+        )
+
+    if not verify_password(current_password, user_profile.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password saat ini salah.",
+        )
+
+    user_profile.password_hash = hash_password(new_password)
+    db.commit()
+
+
+def update_profile(
+    db: Session,
+    *,
+    user_id: str,
+    store_name: str,
+) -> AuthUserResponse:
+    user_profile = db.get(UserProfile, user_id)
+    if not user_profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User tidak ditemukan.",
+        )
+
+    update_user_profile(db, user_profile=user_profile, store_name=store_name)
+    db.commit()
+
+    return AuthUserResponse(
+        id=user_profile.user_id,
+        email=user_profile.email,
+        store_name=user_profile.store_name,
     )
 
 

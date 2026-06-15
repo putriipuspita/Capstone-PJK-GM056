@@ -28,3 +28,14 @@ def create_local_user_profile(
     db.add(user_profile)
     db.flush()
     return user_profile
+
+
+def update_user_profile(
+    db: Session,
+    *,
+    user_profile: UserProfile,
+    store_name: str,
+) -> UserProfile:
+    user_profile.store_name = store_name
+    db.flush()
+    return user_profile
