@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from src.api_app.services.insight_service import (
     build_aspect_insights,
     build_complaints,
-    build_recommendations,
     build_strengths,
 )
+from src.api_app.services.recommendation_service import generate_recommendations
 from src.ml.predictor import SentimentPrediction, get_sentiment_predictor
 from src.shared.config import settings
 from src.shared.database import SessionLocal
@@ -58,10 +58,17 @@ def process_analysis(analysis_id: str) -> None:
         aspect_insights = build_aspect_insights(rows, predictions)
         complaints = build_complaints(rows, predictions)
         strengths = build_strengths(rows, predictions)
-        recommendations = build_recommendations(complaints, aspect_insights)
+        summary = _build_summary(predictions)
+        recommendations = generate_recommendations(
+            rows=rows,
+            summary=summary,
+            complaints=complaints,
+            aspect_insights=aspect_insights,
+            strengths=strengths,
+        )
 
         result = {
-            "summary": _build_summary(predictions),
+            "summary": summary,
             "trends": _build_trends(rows, predictions),
             "aspect_insights": aspect_insights,
             "complaints": complaints,

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     max_upload_reviews: int = 100000
     sentiment_predictor_provider: str = "dummy"
     sentiment_batch_size: int = 256
+    recommendation_provider: str = "rule_based"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
     jwt_secret_key: str = "change-this-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440
