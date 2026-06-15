@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     auth_token_expire_minutes: int = 60
     require_email_verification: bool = False
     allow_dev_auth_fallback: bool = True
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_from_name: str = "SENTIX"
+    smtp_use_tls: bool = True
+    smtp_timeout_seconds: int = 15
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
     dev_store_name: str = "Sentix Demo Store"
     dev_user_email: str = "demo@sentix.local"

@@ -5,6 +5,7 @@ from gotrue.errors import AuthApiError
 from sqlalchemy.orm import Session
 
 from src.shared.config import settings
+from src.shared.email import EmailSendError, is_email_enabled, send_password_reset_email, send_verification_email
 from src.shared.models import UserProfile
 from src.shared.repositories.auth_token_repository import (
     create_email_verification_token,
@@ -96,6 +97,14 @@ def register_local_user(db: Session, *, store_name: str, email: str, password: s
             expires_at=token_expires_at(),
         )
         verification_url = f"{settings.auth_callback_url}?token_hash={verification_token}&type=email"
+        try:
+            send_verification_email(to_email=user_profile.email, verification_url=verification_url)
+        except EmailSendError as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
 
     db.commit()
 
@@ -103,8 +112,8 @@ def register_local_user(db: Session, *, store_name: str, email: str, password: s
         id=user_profile.user_id,
         email=user_profile.email,
         store_name=user_profile.store_name,
-        verification_token=verification_token,
-        verification_url=verification_url,
+        verification_token=None if is_email_enabled() else verification_token,
+        verification_url=None if is_email_enabled() else verification_url,
     )
 
 
@@ -228,6 +237,17 @@ def request_local_password_reset(db: Session, *, email: str) -> MessageResponse:
     db.commit()
 
     reset_url = f"{settings.frontend_public_url.rstrip('/')}/auth/reset-password?token_hash={plain_token}"
+    try:
+        send_password_reset_email(to_email=user_profile.email, reset_url=reset_url)
+    except EmailSendError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+
+    if is_email_enabled():
+        return MessageResponse(message="Link reset password telah dikirim jika email terdaftar.")
+
     return MessageResponse(
         message="Token reset password dibuat.",
         reset_token=plain_token,
