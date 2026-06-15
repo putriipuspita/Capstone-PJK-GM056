@@ -9,6 +9,7 @@ from src.api_app.services.auth_service import (
     request_password_reset,
     reset_password,
 )
+from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
     AuthSessionResponse,
@@ -36,6 +37,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthUse
 @router.post("/login", response_model=AuthSessionResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
     return login_user(email=payload.email, password=payload.password, db=db)
+
+
+@router.get("/me", response_model=AuthUserResponse)
+def get_me(current_user: CurrentUser = Depends(get_current_user)) -> AuthUserResponse:
+    return AuthUserResponse(
+        id=current_user.user_id,
+        email=current_user.email,
+        store_name=current_user.store_name,
+    )
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
