@@ -37,6 +37,12 @@ def get_current_user(
         store_name = user.user_metadata.get("store_name") or user.user_metadata.get("namaToko") or email
         return CurrentUser(user_id=user.id, email=email, store_name=store_name)
 
+    if not settings.allow_dev_auth_fallback:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token autentikasi diperlukan.",
+        )
+
     return CurrentUser(
         user_id=settings.dev_user_id,
         email=settings.dev_user_email,
