@@ -25,6 +25,8 @@ class AuthUserResponse(BaseModel):
     id: str
     email: str
     store_name: str | None = None
+    verification_token: str | None = None
+    verification_url: str | None = None
 
 
 class AuthSessionResponse(BaseModel):

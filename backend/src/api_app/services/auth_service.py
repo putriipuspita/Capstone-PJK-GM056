@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 from src.shared.config import settings
 from src.shared.models import UserProfile
 from src.shared.repositories.auth_token_repository import (
+    create_email_verification_token,
     create_password_reset_token,
+    get_valid_email_verification_token,
     get_valid_password_reset_token,
+    mark_email_verification_token_used,
     mark_password_reset_token_used,
 )
 from src.shared.repositories.product_repository import get_or_create_user_profile
@@ -81,12 +84,27 @@ def register_local_user(db: Session, *, store_name: str, email: str, password: s
         password_hash=hash_password(password),
         is_email_verified=not settings.require_email_verification,
     )
+    verification_token = None
+    verification_url = None
+
+    if settings.require_email_verification:
+        verification_token = create_plain_token()
+        create_email_verification_token(
+            db,
+            user_id=user_profile.user_id,
+            token_hash=hash_token(verification_token),
+            expires_at=token_expires_at(),
+        )
+        verification_url = f"{settings.auth_callback_url}?token_hash={verification_token}&type=email"
+
     db.commit()
 
     return AuthUserResponse(
         id=user_profile.user_id,
         email=user_profile.email,
         store_name=user_profile.store_name,
+        verification_token=verification_token,
+        verification_url=verification_url,
     )
 
 
@@ -272,6 +290,9 @@ def reset_local_password(db: Session, *, token: str, password: str) -> None:
 
 
 def handle_auth_callback(*, token_hash: str, verify_type: str = "email") -> str:
+    if settings.auth_provider == "local":
+        return handle_local_auth_callback(token=token_hash, verify_type=verify_type)
+
     try:
         get_supabase_auth_client().auth.verify_otp(
             {
@@ -284,5 +305,39 @@ def handle_auth_callback(*, token_hash: str, verify_type: str = "email") -> str:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Verifikasi auth gagal: {exc}",
         ) from exc
+
+    return f"{settings.frontend_public_url.rstrip()}/auth/login?verified=1"
+
+
+def handle_local_auth_callback(*, token: str, verify_type: str = "email") -> str:
+    if verify_type != "email":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipe verifikasi auth tidak didukung.",
+        )
+
+    from src.shared.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        email_verification_token = get_valid_email_verification_token(db, token_hash=hash_token(token))
+        if not email_verification_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token verifikasi email tidak valid atau sudah kedaluwarsa.",
+            )
+
+        user_profile = db.get(UserProfile, email_verification_token.user_id)
+        if not user_profile:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User tidak ditemukan.",
+            )
+
+        user_profile.is_email_verified = True
+        mark_email_verification_token_used(db, email_verification_token=email_verification_token)
+        db.commit()
+    finally:
+        db.close()
 
     return f"{settings.frontend_public_url.rstrip()}/auth/login?verified=1"
