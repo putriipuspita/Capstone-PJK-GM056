@@ -1,14 +1,25 @@
+from uuid import uuid4
+
 from fastapi import HTTPException, status
 from gotrue.errors import AuthApiError
 from sqlalchemy.orm import Session
 
 from src.shared.config import settings
 from src.shared.repositories.product_repository import get_or_create_user_profile
+from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email
 from src.shared.schemas.auth import AuthSessionResponse, AuthUserResponse
+from src.shared.security import create_access_token, hash_password, verify_password
 from src.shared.storage import get_supabase_auth_client
 
 
 def register_user(db: Session, *, store_name: str, email: str, password: str) -> AuthUserResponse:
+    if settings.auth_provider == "local":
+        return register_local_user(db, store_name=store_name, email=email, password=password)
+
+    return register_supabase_user(db, store_name=store_name, email=email, password=password)
+
+
+def register_supabase_user(db: Session, *, store_name: str, email: str, password: str) -> AuthUserResponse:
     try:
         response = get_supabase_auth_client().auth.sign_up(
             {
@@ -47,7 +58,45 @@ def register_user(db: Session, *, store_name: str, email: str, password: str) ->
     )
 
 
-def login_user(*, email: str, password: str) -> AuthSessionResponse:
+def register_local_user(db: Session, *, store_name: str, email: str, password: str) -> AuthUserResponse:
+    normalized_email = email.lower()
+    existing_user = get_user_profile_by_email(db, email=normalized_email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email sudah terdaftar.",
+        )
+
+    user_profile = create_local_user_profile(
+        db,
+        user_id=str(uuid4()),
+        store_name=store_name,
+        email=normalized_email,
+        password_hash=hash_password(password),
+        is_email_verified=not settings.require_email_verification,
+    )
+    db.commit()
+
+    return AuthUserResponse(
+        id=user_profile.user_id,
+        email=user_profile.email,
+        store_name=user_profile.store_name,
+    )
+
+
+def login_user(*, email: str, password: str, db: Session | None = None) -> AuthSessionResponse:
+    if settings.auth_provider == "local":
+        if db is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database session diperlukan untuk login local.",
+            )
+        return login_local_user(db, email=email, password=password)
+
+    return login_supabase_user(email=email, password=password)
+
+
+def login_supabase_user(*, email: str, password: str) -> AuthSessionResponse:
     try:
         response = get_supabase_auth_client().auth.sign_in_with_password(
             {
@@ -76,6 +125,40 @@ def login_user(*, email: str, password: str) -> AuthSessionResponse:
             id=response.user.id,
             email=response.user.email or email,
             store_name=store_name,
+        ),
+    )
+
+
+def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionResponse:
+    normalized_email = email.lower()
+    user_profile = get_user_profile_by_email(db, email=normalized_email)
+    if not user_profile or not user_profile.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email atau password salah.",
+        )
+
+    if not verify_password(password, user_profile.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email atau password salah.",
+        )
+
+    if settings.require_email_verification and not user_profile.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email belum diverifikasi.",
+        )
+
+    access_token = create_access_token(user_id=user_profile.user_id, email=user_profile.email)
+
+    return AuthSessionResponse(
+        access_token=access_token,
+        refresh_token="",
+        user=AuthUserResponse(
+            id=user_profile.user_id,
+            email=user_profile.email,
+            store_name=user_profile.store_name,
         ),
     )
 

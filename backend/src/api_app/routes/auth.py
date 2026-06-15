@@ -34,8 +34,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthUse
 
 
 @router.post("/login", response_model=AuthSessionResponse)
-def login(payload: LoginRequest) -> AuthSessionResponse:
-    return login_user(email=payload.email, password=payload.password)
+def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
+    return login_user(email=payload.email, password=payload.password, db=db)
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

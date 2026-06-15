@@ -4,12 +4,12 @@ from pydantic import BaseModel, EmailStr, Field
 class RegisterRequest(BaseModel):
     store_name: str = Field(min_length=2, max_length=255)
     email: EmailStr
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=6, max_length=72)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=1)
+    password: str = Field(min_length=1, max_length=72)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -18,7 +18,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token_hash: str = Field(min_length=1)
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=6, max_length=72)
 
 
 class AuthUserResponse(BaseModel):
