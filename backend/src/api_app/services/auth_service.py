@@ -12,12 +12,14 @@ from src.shared.repositories.auth_token_repository import (
     create_email_verification_token,
     create_password_reset_token,
     create_refresh_token_session,
+    delete_expired_auth_tokens,
     get_valid_email_verification_token,
     get_valid_password_reset_token,
     get_valid_refresh_token_session,
     mark_email_verification_token_used,
     mark_password_reset_token_used,
     revoke_refresh_token_session,
+    revoke_user_refresh_token_sessions,
 )
 from src.shared.repositories.product_repository import get_or_create_user_profile
 from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email, update_user_profile
@@ -177,6 +179,7 @@ def login_supabase_user(*, email: str, password: str) -> AuthSessionResponse:
 
 
 def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionResponse:
+    delete_expired_auth_tokens(db)
     normalized_email = email.lower()
     user_profile = get_user_profile_by_email(db, email=normalized_email)
     if not user_profile or not user_profile.password_hash:
@@ -224,6 +227,8 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Refresh token backend hanya tersedia untuk auth local.",
         )
+
+    delete_expired_auth_tokens(db)
 
     try:
         payload = decode_token(refresh_token)
@@ -280,6 +285,7 @@ def logout_local_session(db: Session, *, refresh_token: str) -> None:
     if settings.auth_provider != "local":
         return
 
+    delete_expired_auth_tokens(db)
     refresh_token_session = get_valid_refresh_token_session(db, token_hash=hash_token(refresh_token))
     if refresh_token_session:
         revoke_refresh_token_session(db, refresh_token_session=refresh_token_session)
@@ -313,6 +319,7 @@ def change_local_password(
         )
 
     user_profile.password_hash = hash_password(new_password)
+    revoke_user_refresh_token_sessions(db, user_id=user_profile.user_id)
     db.commit()
 
 
@@ -494,6 +501,7 @@ def reset_local_password(db: Session, *, token: str, password: str) -> None:
 
     user_profile.password_hash = hash_password(password)
     mark_password_reset_token_used(db, password_reset_token=password_reset_token)
+    revoke_user_refresh_token_sessions(db, user_id=user_profile.user_id)
     db.commit()
 
 

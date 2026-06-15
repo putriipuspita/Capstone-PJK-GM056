@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from src.shared.models import EmailVerificationToken, PasswordResetToken, RefreshTokenSession
@@ -101,3 +101,35 @@ def get_valid_refresh_token_session(db: Session, *, token_hash: str) -> RefreshT
 def revoke_refresh_token_session(db: Session, *, refresh_token_session: RefreshTokenSession) -> None:
     refresh_token_session.revoked_at = datetime.utcnow()
     db.flush()
+
+
+def revoke_user_refresh_token_sessions(db: Session, *, user_id: str) -> None:
+    statement = select(RefreshTokenSession).where(
+        RefreshTokenSession.user_id == user_id,
+        RefreshTokenSession.revoked_at.is_(None),
+    )
+    revoked_at = datetime.utcnow()
+    for refresh_token_session in db.execute(statement).scalars().all():
+        refresh_token_session.revoked_at = revoked_at
+
+    db.flush()
+
+
+def delete_expired_auth_tokens(db: Session) -> dict[str, int]:
+    now = datetime.utcnow()
+    deleted_email_tokens = db.execute(
+        delete(EmailVerificationToken).where(EmailVerificationToken.expires_at <= now)
+    ).rowcount
+    deleted_password_tokens = db.execute(
+        delete(PasswordResetToken).where(PasswordResetToken.expires_at <= now)
+    ).rowcount
+    deleted_refresh_sessions = db.execute(
+        delete(RefreshTokenSession).where(RefreshTokenSession.expires_at <= now)
+    ).rowcount
+    db.flush()
+
+    return {
+        "email_verification_tokens": deleted_email_tokens or 0,
+        "password_reset_tokens": deleted_password_tokens or 0,
+        "refresh_token_sessions": deleted_refresh_sessions or 0,
+    }
