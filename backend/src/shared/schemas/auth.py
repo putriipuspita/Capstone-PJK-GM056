@@ -36,3 +36,5 @@ class AuthSessionResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+    reset_token: str | None = None
+    reset_url: str | None = None

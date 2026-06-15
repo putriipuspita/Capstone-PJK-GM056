@@ -39,14 +39,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthSessionRe
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
-    request_password_reset(email=payload.email)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    response = request_password_reset(email=payload.email, db=db)
+    if response:
+        return response
     return MessageResponse(message="Link reset password telah dikirim jika email terdaftar.")
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-def reset_user_password(payload: ResetPasswordRequest) -> MessageResponse:
-    reset_password(token_hash=payload.token_hash, password=payload.password)
+def reset_user_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    reset_password(token_hash=payload.token_hash, password=payload.password, db=db)
     return MessageResponse(message="Password berhasil diubah.")
 
 
