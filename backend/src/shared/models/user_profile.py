@@ -27,3 +27,4 @@ class UserProfile(Base):
     testimonials = relationship("Testimonial", back_populates="user_profile")
     email_verification_tokens = relationship("EmailVerificationToken", back_populates="user_profile")
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user_profile")
+    refresh_token_sessions = relationship("RefreshTokenSession", back_populates="user_profile")

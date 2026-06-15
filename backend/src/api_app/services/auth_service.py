@@ -11,10 +11,13 @@ from src.shared.models import UserProfile
 from src.shared.repositories.auth_token_repository import (
     create_email_verification_token,
     create_password_reset_token,
+    create_refresh_token_session,
     get_valid_email_verification_token,
     get_valid_password_reset_token,
+    get_valid_refresh_token_session,
     mark_email_verification_token_used,
     mark_password_reset_token_used,
+    revoke_refresh_token_session,
 )
 from src.shared.repositories.product_repository import get_or_create_user_profile
 from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email, update_user_profile
@@ -26,6 +29,7 @@ from src.shared.security import (
     decode_token,
     hash_password,
     hash_token,
+    refresh_token_expires_at,
     token_expires_at,
     verify_password,
 )
@@ -195,6 +199,13 @@ def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionRe
 
     access_token = create_access_token(user_id=user_profile.user_id, email=user_profile.email)
     refresh_token = create_refresh_token(user_id=user_profile.user_id, email=user_profile.email)
+    create_refresh_token_session(
+        db,
+        user_id=user_profile.user_id,
+        token_hash=hash_token(refresh_token),
+        expires_at=refresh_token_expires_at(),
+    )
+    db.commit()
 
     return AuthSessionResponse(
         access_token=access_token,
@@ -229,6 +240,13 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
             detail="Refresh token tidak valid.",
         )
 
+    refresh_token_session = get_valid_refresh_token_session(db, token_hash=hash_token(refresh_token))
+    if not refresh_token_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token tidak valid atau sudah logout.",
+        )
+
     user_profile = db.get(UserProfile, user_id)
     if not user_profile:
         raise HTTPException(
@@ -238,6 +256,14 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
 
     new_access_token = create_access_token(user_id=user_profile.user_id, email=user_profile.email)
     new_refresh_token = create_refresh_token(user_id=user_profile.user_id, email=user_profile.email)
+    revoke_refresh_token_session(db, refresh_token_session=refresh_token_session)
+    create_refresh_token_session(
+        db,
+        user_id=user_profile.user_id,
+        token_hash=hash_token(new_refresh_token),
+        expires_at=refresh_token_expires_at(),
+    )
+    db.commit()
 
     return AuthSessionResponse(
         access_token=new_access_token,
@@ -248,6 +274,16 @@ def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResp
             store_name=user_profile.store_name,
         ),
     )
+
+
+def logout_local_session(db: Session, *, refresh_token: str) -> None:
+    if settings.auth_provider != "local":
+        return
+
+    refresh_token_session = get_valid_refresh_token_session(db, token_hash=hash_token(refresh_token))
+    if refresh_token_session:
+        revoke_refresh_token_session(db, refresh_token_session=refresh_token_session)
+        db.commit()
 
 
 def change_local_password(

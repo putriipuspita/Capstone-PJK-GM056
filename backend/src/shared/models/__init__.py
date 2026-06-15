@@ -1,4 +1,4 @@
-from src.shared.models.auth_token import EmailVerificationToken, PasswordResetToken
+from src.shared.models.auth_token import EmailVerificationToken, PasswordResetToken, RefreshTokenSession
 from src.shared.models.analysis_result import AnalysisResult
 from src.shared.models.analysis_run import AnalysisRun
 from src.shared.models.dataset import Dataset
@@ -14,6 +14,7 @@ __all__ = [
     "Dataset",
     "PasswordResetToken",
     "Product",
+    "RefreshTokenSession",
     "Review",
     "Testimonial",
     "UserProfile",

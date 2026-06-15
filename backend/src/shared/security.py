@@ -57,3 +57,7 @@ def hash_token(token: str) -> str:
 
 def token_expires_at() -> datetime:
     return datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
+
+
+def refresh_token_expires_at() -> datetime:
+    return datetime.utcnow() + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)

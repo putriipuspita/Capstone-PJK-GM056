@@ -6,6 +6,7 @@ from src.api_app.services.auth_service import (
     change_local_password,
     handle_auth_callback,
     login_user,
+    logout_local_session,
     register_user,
     request_email_verification,
     request_password_reset,
@@ -72,6 +73,12 @@ def update_me(
 @router.post("/refresh", response_model=AuthSessionResponse)
 def refresh_session(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
     return refresh_local_session(db, refresh_token=payload.refresh_token)
+
+
+@router.post("/logout", response_model=MessageResponse)
+def logout(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    logout_local_session(db, refresh_token=payload.refresh_token)
+    return MessageResponse(message="Logout berhasil.")
 
 
 @router.post("/change-password", response_model=MessageResponse)
