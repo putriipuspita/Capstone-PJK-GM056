@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-this-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440
+    jwt_refresh_token_expire_minutes: int = 10080
     auth_token_expire_minutes: int = 60
     require_email_verification: bool = False
     allow_dev_auth_fallback: bool = True

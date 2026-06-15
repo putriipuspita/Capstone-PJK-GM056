@@ -8,6 +8,7 @@ from src.api_app.services.auth_service import (
     register_user,
     request_email_verification,
     request_password_reset,
+    refresh_local_session,
     reset_password,
 )
 from src.shared.auth import CurrentUser, get_current_user
@@ -18,6 +19,7 @@ from src.shared.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
+    RefreshTokenRequest,
     RegisterRequest,
     ResendVerificationRequest,
     ResetPasswordRequest,
@@ -48,6 +50,11 @@ def get_me(current_user: CurrentUser = Depends(get_current_user)) -> AuthUserRes
         email=current_user.email,
         store_name=current_user.store_name,
     )
+
+
+@router.post("/refresh", response_model=AuthSessionResponse)
+def refresh_session(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> AuthSessionResponse:
+    return refresh_local_session(db, refresh_token=payload.refresh_token)
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

@@ -1,3 +1,4 @@
+import jwt
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -18,7 +19,16 @@ from src.shared.repositories.auth_token_repository import (
 from src.shared.repositories.product_repository import get_or_create_user_profile
 from src.shared.repositories.user_repository import create_local_user_profile, get_user_profile_by_email
 from src.shared.schemas.auth import AuthSessionResponse, AuthUserResponse, MessageResponse
-from src.shared.security import create_access_token, create_plain_token, hash_password, hash_token, token_expires_at, verify_password
+from src.shared.security import (
+    create_access_token,
+    create_plain_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    hash_token,
+    token_expires_at,
+    verify_password,
+)
 from src.shared.storage import get_supabase_auth_client
 
 
@@ -184,10 +194,54 @@ def login_local_user(db: Session, *, email: str, password: str) -> AuthSessionRe
         )
 
     access_token = create_access_token(user_id=user_profile.user_id, email=user_profile.email)
+    refresh_token = create_refresh_token(user_id=user_profile.user_id, email=user_profile.email)
 
     return AuthSessionResponse(
         access_token=access_token,
-        refresh_token="",
+        refresh_token=refresh_token,
+        user=AuthUserResponse(
+            id=user_profile.user_id,
+            email=user_profile.email,
+            store_name=user_profile.store_name,
+        ),
+    )
+
+
+def refresh_local_session(db: Session, *, refresh_token: str) -> AuthSessionResponse:
+    if settings.auth_provider != "local":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token backend hanya tersedia untuk auth local.",
+        )
+
+    try:
+        payload = decode_token(refresh_token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token tidak valid.",
+        ) from exc
+
+    user_id = payload.get("sub")
+    if not user_id or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token tidak valid.",
+        )
+
+    user_profile = db.get(UserProfile, user_id)
+    if not user_profile:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User tidak ditemukan.",
+        )
+
+    new_access_token = create_access_token(user_id=user_profile.user_id, email=user_profile.email)
+    new_refresh_token = create_refresh_token(user_id=user_profile.user_id, email=user_profile.email)
+
+    return AuthSessionResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
         user=AuthUserResponse(
             id=user_profile.user_id,
             email=user_profile.email,

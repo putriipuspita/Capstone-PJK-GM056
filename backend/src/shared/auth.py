@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from src.shared.config import settings
 from src.shared.database import get_db
 from src.shared.models import UserProfile
+from src.shared.security import decode_token
 from src.shared.storage import get_supabase_auth_client
 
 
@@ -52,7 +53,7 @@ def get_current_user(
 
 def get_current_local_user(token: str, db: Session) -> CurrentUser:
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = decode_token(token)
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,7 +61,7 @@ def get_current_local_user(token: str, db: Session) -> CurrentUser:
         ) from exc
 
     user_id = payload.get("sub")
-    if not user_id:
+    if not user_id or payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token tidak valid.",

@@ -24,10 +24,27 @@ def create_access_token(*, user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
         "email": email,
+        "type": "access",
         "exp": expires_at,
         "iat": datetime.utcnow(),
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def create_refresh_token(*, user_id: str, email: str) -> str:
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "type": "refresh",
+        "exp": expires_at,
+        "iat": datetime.utcnow(),
+    }
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def decode_token(token: str) -> dict:
+    return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
 
 
 def create_plain_token() -> str:
