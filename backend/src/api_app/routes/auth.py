@@ -6,6 +6,7 @@ from src.api_app.services.auth_service import (
     change_local_password,
     handle_auth_callback,
     login_user,
+    logout_all_local_sessions,
     logout_local_session,
     register_user,
     request_email_verification,
@@ -79,6 +80,15 @@ def refresh_session(payload: RefreshTokenRequest, db: Session = Depends(get_db))
 def logout(payload: RefreshTokenRequest, db: Session = Depends(get_db)) -> MessageResponse:
     logout_local_session(db, refresh_token=payload.refresh_token)
     return MessageResponse(message="Logout berhasil.")
+
+
+@router.post("/logout-all", response_model=MessageResponse)
+def logout_all(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> MessageResponse:
+    logout_all_local_sessions(db, user_id=current_user.user_id)
+    return MessageResponse(message="Semua sesi berhasil logout.")
 
 
 @router.post("/change-password", response_model=MessageResponse)

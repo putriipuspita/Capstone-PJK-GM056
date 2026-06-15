@@ -292,6 +292,15 @@ def logout_local_session(db: Session, *, refresh_token: str) -> None:
         db.commit()
 
 
+def logout_all_local_sessions(db: Session, *, user_id: str) -> None:
+    if settings.auth_provider != "local":
+        return
+
+    delete_expired_auth_tokens(db)
+    revoke_user_refresh_token_sessions(db, user_id=user_id)
+    db.commit()
+
+
 def change_local_password(
     db: Session,
     *,
