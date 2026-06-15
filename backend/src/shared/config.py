@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     auth_provider: str = "supabase"
     storage_provider: str = "supabase"
     upload_dir: str = "uploads"
+    jwt_secret_key: str = "change-this-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 1440
+    auth_token_expire_minutes: int = 60
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
     dev_store_name: str = "Sentix Demo Store"
     dev_user_email: str = "demo@sentix.local"
