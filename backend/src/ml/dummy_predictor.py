@@ -5,13 +5,13 @@ class DummySentimentPredictor:
         for text in texts:
             lowered = text.lower()
             if any(word in lowered for word in ["bagus", "cepat", "mantap", "puas"]):
-                sentiment = "positive"
+                sentiment = "positif"
                 confidence = 0.8
             elif any(word in lowered for word in ["rusak", "lama", "buruk", "kecewa"]):
-                sentiment = "negative"
+                sentiment = "negatif"
                 confidence = 0.8
             else:
-                sentiment = "neutral"
+                sentiment = "netral"
                 confidence = 0.6
 
             predictions.append(

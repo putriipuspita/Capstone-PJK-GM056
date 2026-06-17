@@ -7,6 +7,12 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     cors_origins: str = "http://localhost:3000"
     database_url: str = "postgresql+psycopg://postgres:password@localhost:5432/sentix"
+    sentiment_predictor_provider: str = "dummy"
+    sentiment_batch_size: int = 32
+    huggingface_api_token: str | None = None
+    huggingface_model_id: str | None = None
+    huggingface_timeout_seconds: int = 60
+    huggingface_id2label: str = "negatif,netral,positif"
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
     dev_store_name: str = "Sentix Demo Store"
     dev_user_email: str = "demo@sentix.local"

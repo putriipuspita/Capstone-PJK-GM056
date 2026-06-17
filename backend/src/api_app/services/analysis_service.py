@@ -1,14 +1,17 @@
 from collections import Counter, defaultdict
 
+from sqlalchemy.orm import Session
+
 from src.api_app.services.insight_service import (
     build_aspect_insights,
     build_complaints,
     build_recommendations,
     build_strengths,
 )
-from src.ml.dummy_predictor import DummySentimentPredictor
+from src.ml.predictor import get_sentiment_predictor
+from src.shared.config import settings
 from src.shared.database import SessionLocal
-from src.shared.models import Review
+from src.shared.models import AnalysisRun, Review
 from src.shared.repositories.analysis_repository import (
     create_analysis_result,
     get_analysis_run,
@@ -32,8 +35,15 @@ def process_analysis(analysis_id: str) -> None:
         reviews = get_reviews_by_dataset(db, dataset_id=analysis_run.dataset_id)
         rows = [_review_to_row(review) for review in reviews]
 
-        predictor = DummySentimentPredictor()
-        predictions = predictor.predict_sentiments([row.review_text for row in rows])
+        predictions = _predict_in_batches(
+            texts=[row.review_text for row in rows],
+            analysis_run=analysis_run,
+            db=db,
+        )
+        if len(predictions) != len(rows):
+            raise RuntimeError(
+                f"Jumlah prediksi sentiment tidak sesuai jumlah review: {len(predictions)} dari {len(rows)}."
+            )
 
         update_review_predictions(db, reviews=reviews, predictions=predictions)
         update_analysis_status(
@@ -87,22 +97,60 @@ def _review_to_row(review: Review) -> ReviewRow:
     )
 
 
+def _predict_in_batches(
+    *,
+    texts: list[str],
+    analysis_run: AnalysisRun,
+    db: Session,
+) -> list[dict]:
+    predictor = get_sentiment_predictor()
+    batch_size = max(settings.sentiment_batch_size, 1)
+    predictions: list[dict] = []
+    total = len(texts)
+
+    if total == 0:
+        return predictions
+
+    for start_index in range(0, total, batch_size):
+        batch = texts[start_index : start_index + batch_size]
+        batch_predictions = predictor.predict_sentiments(batch)
+        if len(batch_predictions) != len(batch):
+            raise RuntimeError(
+                f"Batch predictor mengembalikan {len(batch_predictions)} prediksi untuk {len(batch)} teks."
+            )
+
+        predictions.extend(batch_predictions)
+
+        processed_reviews = min(start_index + len(batch), total)
+        progress = 10 + round((processed_reviews / total) * 60)
+        update_analysis_status(
+            db,
+            analysis_run=analysis_run,
+            status="processing",
+            progress=min(progress, 70),
+            processed_reviews=processed_reviews,
+        )
+        db.commit()
+
+    return predictions
+
+
 def _build_summary(predictions: list[dict]) -> dict:
     counts = Counter(prediction["sentiment"] for prediction in predictions)
     total = len(predictions)
 
-    positive = counts.get("positive", 0)
-    neutral = counts.get("neutral", 0)
-    negative = counts.get("negative", 0)
-    satisfaction_score = round(((positive + (neutral * 0.5)) / total) * 100) if total else 0
+    positif = counts.get("positif", 0)
+    netral = counts.get("netral", 0)
+    negatif = counts.get("negatif", 0)
+    satisfaction_score = round(((positif + (netral * 0.5)) / total) * 100) if total else 0
 
     return {
-        "positive": positive,
-        "neutral": neutral,
-        "negative": negative,
-        "positive_percentage": round((positive / total) * 100, 1) if total else 0,
-        "neutral_percentage": round((neutral / total) * 100, 1) if total else 0,
-        "negative_percentage": round((negative / total) * 100, 1) if total else 0,
+        "positif": positif,
+        "netral": netral,
+        "negatif": negatif,
+        "positif_percentage": round((positif / total) * 100, 1) if total else 0,
+        "netral_percentage": round((netral / total) * 100, 1) if total else 0,
+        "negatif_percentage": round((negatif / total) * 100, 1) if total else 0,
         "satisfaction_score": satisfaction_score,
     }
 
@@ -117,9 +165,9 @@ def _build_trends(rows: list[ReviewRow], predictions: list[dict]) -> list[dict]:
     return [
         {
             "period": period,
-            "positive": counts.get("positive", 0),
-            "neutral": counts.get("neutral", 0),
-            "negative": counts.get("negative", 0),
+            "positif": counts.get("positif", 0),
+            "netral": counts.get("netral", 0),
+            "negatif": counts.get("negatif", 0),
         }
         for period, counts in grouped.items()
     ]

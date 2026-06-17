@@ -35,7 +35,7 @@ def build_aspect_insights(rows: list[ReviewRow], predictions: list[dict]) -> lis
     insights = []
     for aspect, count in aspect_counts.most_common():
         sentiments = aspect_sentiments[aspect]
-        dominant_sentiment = sentiments.most_common(1)[0][0] if sentiments else "neutral"
+        dominant_sentiment = sentiments.most_common(1)[0][0] if sentiments else "netral"
         insights.append(
             {
                 "aspect": aspect,
@@ -53,7 +53,7 @@ def build_complaints(rows: list[ReviewRow], predictions: list[dict]) -> list[dic
     negative_total = 0
 
     for row, prediction in zip(rows, predictions):
-        if prediction["sentiment"] != "negative":
+        if prediction["sentiment"] != "negatif":
             continue
 
         negative_total += 1
@@ -82,7 +82,7 @@ def build_strengths(rows: list[ReviewRow], predictions: list[dict], limit: int =
     strengths: list[str] = []
 
     for row, prediction in zip(rows, predictions):
-        if prediction["sentiment"] == "positive":
+        if prediction["sentiment"] == "positif":
             strengths.append(row.review_text)
 
         if len(strengths) >= limit:
