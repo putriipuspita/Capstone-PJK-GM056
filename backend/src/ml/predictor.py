@@ -21,4 +21,9 @@ def get_sentiment_predictor() -> SentimentPredictor:
 
         return HuggingFaceSentimentPredictor()
 
+    if provider == "local":
+        from src.ml.local_predictor import LocalSentimentPredictor
+
+        return LocalSentimentPredictor()
+
     raise RuntimeError(f"Provider sentiment tidak dikenal: {settings.sentiment_predictor_provider}.")

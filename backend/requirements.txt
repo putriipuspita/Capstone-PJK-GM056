@@ -7,3 +7,6 @@ psycopg[binary]==3.2.3
 alembic==1.14.0
 supabase==2.10.0
 email-validator==2.2.0
+torch
+transformers
+tf-keras

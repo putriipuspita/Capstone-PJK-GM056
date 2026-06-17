@@ -37,7 +37,7 @@ class HuggingFaceSentimentPredictor:
         ]
 
     def _call_inference_api(self, texts: list[str]) -> object:
-        url = f"https://api-inference.huggingface.co/models/{settings.huggingface_model_id}"
+        url = f"https://router.huggingface.co/hf-inference/models/{settings.huggingface_model_id}"
         body = {
             "inputs": texts,
             "options": {

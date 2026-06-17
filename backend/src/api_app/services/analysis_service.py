@@ -104,7 +104,12 @@ def _predict_in_batches(
     db: Session,
 ) -> list[dict]:
     predictor = get_sentiment_predictor()
-    batch_size = max(settings.sentiment_batch_size, 1)
+    configured_batch_size = (
+        settings.huggingface_batch_size
+        if settings.sentiment_predictor_provider.lower() == "huggingface"
+        else settings.sentiment_batch_size
+    )
+    batch_size = max(configured_batch_size, 1)
     predictions: list[dict] = []
     total = len(texts)
 
