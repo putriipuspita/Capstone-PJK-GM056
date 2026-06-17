@@ -115,3 +115,28 @@ def get_analysis_result(
         "recommendations": analysis_run.result.recommendations,
         "sample_predictions": analysis_run.result.sample_predictions,
     }
+
+
+@router.delete("/{analysis_id}")
+def delete_analysis(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    from src.shared.repositories.analysis_repository import delete_analysis_run
+
+    analysis_run = get_analysis_run_for_user(
+        db,
+        analysis_run_id=analysis_id,
+        user_id=current_user.user_id,
+    )
+    if not analysis_run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Analysis run tidak ditemukan.",
+        )
+
+    delete_analysis_run(db, analysis_run=analysis_run)
+    db.commit()
+
+    return {"message": "Data analisis berhasil dihapus."}

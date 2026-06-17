@@ -179,3 +179,8 @@ def create_analysis_result(
     db.add(analysis_result)
     db.flush()
     return analysis_result
+
+
+def delete_analysis_run(db: Session, *, analysis_run: AnalysisRun) -> None:
+    db.delete(analysis_run)
+    db.flush()
