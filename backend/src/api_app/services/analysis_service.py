@@ -58,7 +58,7 @@ def process_analysis(analysis_id: str) -> None:
         aspect_insights = build_aspect_insights(rows, predictions)
         complaints = build_complaints(rows, predictions)
         strengths = build_strengths(rows, predictions)
-        recommendations = build_recommendations(complaints, aspect_insights)
+        recommendations = build_recommendations(complaints, aspect_insights, strengths)
 
         result = {
             "summary": _build_summary(predictions),

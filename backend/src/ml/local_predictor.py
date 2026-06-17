@@ -13,7 +13,7 @@ class LocalSentimentPredictor:
         self.classifier = pipeline(
             "text-classification",
             model=settings.huggingface_model_id,
-            # Jika punya GPU lokal bisa tambahkan device=0, tapi kita default ke CPU
+            token=settings.huggingface_api_token,
         )
 
         self._id2label = self._build_id2label()

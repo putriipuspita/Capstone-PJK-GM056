@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     huggingface_timeout_seconds: int = 60
     huggingface_batch_size: int = 32
     huggingface_id2label: str = "negatif,netral,positif"
+    gemini_api_key: str | None = None
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
     dev_store_name: str = "Sentix Demo Store"
     dev_user_email: str = "demo@sentix.local"
@@ -21,7 +22,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str = "your-anon-key"
     supabase_service_role_key: str = "your-service-role-key"
     supabase_storage_bucket: str = "uploads"
-    backend_public_url: str = "http://127.0.0.1:8000"
+    backend_public_url: str = "https://hara25-analisis-sentimen.hf.space"
     frontend_public_url: str = "http://localhost:3000"
 
     @property

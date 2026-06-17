@@ -91,7 +91,15 @@ def build_strengths(rows: list[ReviewRow], predictions: list[dict], limit: int =
     return strengths
 
 
-def build_recommendations(complaints: list[dict], aspect_insights: list[dict]) -> list[dict]:
+def build_recommendations(complaints: list[dict], aspect_insights: list[dict], strengths: list[str]) -> list[dict]:
+    from src.api_app.services.gemini_service import generate_gemini_recommendations
+    
+    # Coba gunakan Gemini terlebih dahulu
+    gemini_recs = generate_gemini_recommendations(complaints, aspect_insights, strengths)
+    if gemini_recs:
+        return gemini_recs
+
+    # Fallback ke rule-based jika Gemini gagal atau API key tidak ada
     recommendations = []
 
     for complaint in complaints[:3]:

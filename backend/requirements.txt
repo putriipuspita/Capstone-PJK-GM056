@@ -10,3 +10,4 @@ email-validator==2.2.0
 torch
 transformers
 tf-keras
+google-genai
