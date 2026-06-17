@@ -16,6 +16,15 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class OtpVerifyRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=6, max_length=6)
+
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+
+
 class ResetPasswordRequest(BaseModel):
     token_hash: str = Field(min_length=1)
     password: str = Field(min_length=6)

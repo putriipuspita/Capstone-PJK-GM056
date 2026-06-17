@@ -7,7 +7,9 @@ from src.api_app.services.auth_service import (
     login_user,
     register_user,
     request_password_reset,
+    resend_signup_otp,
     reset_password,
+    verify_signup_otp,
 )
 from src.shared.database import get_db
 from src.shared.schemas.auth import (
@@ -16,7 +18,9 @@ from src.shared.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
+    OtpVerifyRequest,
     RegisterRequest,
+    ResendOtpRequest,
     ResetPasswordRequest,
 )
 
@@ -54,3 +58,14 @@ def reset_user_password(payload: ResetPasswordRequest) -> MessageResponse:
 def auth_callback(token_hash: str, type: str = "email") -> RedirectResponse:
     redirect_url = handle_auth_callback(token_hash=token_hash, verify_type=type)
     return RedirectResponse(url=redirect_url)
+
+
+@router.post("/verify-otp", response_model=AuthSessionResponse)
+def verify_otp(payload: OtpVerifyRequest) -> AuthSessionResponse:
+    return verify_signup_otp(email=payload.email, otp=payload.otp)
+
+
+@router.post("/resend-otp", response_model=MessageResponse)
+def resend_otp(payload: ResendOtpRequest) -> MessageResponse:
+    resend_signup_otp(email=payload.email)
+    return MessageResponse(message="Kode OTP baru telah dikirim ke email Anda.")

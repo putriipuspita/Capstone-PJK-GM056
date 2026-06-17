@@ -53,8 +53,8 @@ def build_global_dashboard(analysis_runs: list[AnalysisRun]) -> dict:
     return {
         "summary": _build_summary(summary_counts, total_reviews),
         "trends": _build_trends(trends),
-        "top_aspects": _build_ranked_items(aspects, total_reviews, label_key="aspect"),
-        "top_complaints": _build_ranked_items(complaints, max(summary_counts["negative"], 1), label_key="label"),
+        "top_aspects": _build_ranked_items(aspects, total_reviews),
+        "top_complaints": _build_ranked_items(complaints, max(summary_counts["negative"], 1)),
         "products": sorted(product_rows, key=lambda item: item["satisfaction_score"], reverse=True),
     }
 
@@ -89,12 +89,12 @@ def _build_trends(trends: dict[str, Counter]) -> list[dict]:
     ]
 
 
-def _build_ranked_items(counter: Counter, total: int, *, label_key: str) -> list[dict]:
+def _build_ranked_items(counter: Counter, total: int) -> list[dict]:
     return [
         {
-            label_key: label,
-            "count": count,
-            "percentage": round((count / total) * 100, 1) if total else 0,
+            "label": label,
+            "jumlah": count,
+            "persen": round((count / total) * 100, 1) if total else 0,
         }
         for label, count in counter.most_common(5)
     ]

@@ -135,3 +135,52 @@ def handle_auth_callback(*, token_hash: str, verify_type: str = "email") -> str:
         ) from exc
 
     return f"{settings.frontend_public_url.rstrip()}/auth/login?verified=1"
+
+
+def verify_signup_otp(*, email: str, otp: str) -> AuthSessionResponse:
+    try:
+        response = get_supabase_auth_client().auth.verify_otp(
+            {
+                "email": email,
+                "token": otp,
+                "type": "signup",
+            }
+        )
+    except AuthApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Verifikasi OTP gagal: Kode salah atau kadaluarsa. ({exc})",
+        ) from exc
+
+    if not response.session or not response.user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verifikasi OTP gagal: Session tidak ditemukan.",
+        )
+
+    store_name = response.user.user_metadata.get("store_name") if response.user.user_metadata else None
+
+    return AuthSessionResponse(
+        access_token=response.session.access_token,
+        refresh_token=response.session.refresh_token,
+        user=AuthUserResponse(
+            id=response.user.id,
+            email=response.user.email or email,
+            store_name=store_name,
+        ),
+    )
+
+
+def resend_signup_otp(*, email: str) -> None:
+    try:
+        get_supabase_auth_client().auth.resend(
+            {
+                "email": email,
+                "type": "signup",
+            }
+        )
+    except AuthApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Gagal mengirim ulang OTP: {exc}",
+        ) from exc
