@@ -8,6 +8,12 @@ ENV/
 env/
 .ipynb_checkpoints/
 
+
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# HuggingFace training output directories
+results/
+logs/
+
