@@ -32,15 +32,15 @@ Aturan Output:
 - HANYA KEMBALIKAN JSON ARRAY.
 - JSON berisi 3 objek.
 - Masing-masing objek harus memiliki:
-  - "title": (String, maksimal 6 kata)
-  - "description": (String, kalimat rekomendasi yang solutif, 2-3 kalimat)
+  - "judul": (String, maksimal 6 kata)
+  - "deskripsi": (String, kalimat rekomendasi yang solutif, 2-3 kalimat)
   - "source": (String, nilainya WAJIB "gemini")
 
 Contoh Output:
 [
   {{
-    "title": "Evaluasi Ekspedisi Pengiriman",
-    "description": "Banyak keluhan terkait pengiriman lambat. Pertimbangkan untuk mengevaluasi mitra logistik atau memberikan kompensasi diskon untuk keterlambatan.",
+    "judul": "Evaluasi Ekspedisi Pengiriman",
+    "deskripsi": "Banyak keluhan terkait pengiriman lambat. Pertimbangkan untuk mengevaluasi mitra logistik atau memberikan kompensasi diskon untuk keterlambatan.",
     "source": "gemini"
   }}
 ]
@@ -64,7 +64,7 @@ Contoh Output:
         # Validasi struktur
         valid_recs = []
         for rec in recommendations:
-            if isinstance(rec, dict) and "title" in rec and "description" in rec:
+            if isinstance(rec, dict) and "judul" in rec and "deskripsi" in rec:
                 rec["source"] = "gemini"
                 valid_recs.append(rec)
         

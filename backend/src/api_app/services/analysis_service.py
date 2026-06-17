@@ -2,12 +2,7 @@ from collections import Counter, defaultdict
 
 from sqlalchemy.orm import Session
 
-from src.api_app.services.insight_service import (
-    build_aspect_insights,
-    build_complaints,
-    build_recommendations,
-    build_strengths,
-)
+# Old imports removed because we import them locally in the function now.
 from src.ml.predictor import get_sentiment_predictor
 from src.shared.config import settings
 from src.shared.database import SessionLocal
@@ -55,10 +50,25 @@ def process_analysis(analysis_id: str) -> None:
         )
         db.commit()
 
-        aspect_insights = build_aspect_insights(rows, predictions)
-        complaints = build_complaints(rows, predictions)
-        strengths = build_strengths(rows, predictions)
+        from src.api_app.services.insight_service import analyze_insights, build_recommendations
+        
+        insights_data = analyze_insights(rows, predictions)
+        aspect_insights = insights_data["aspect_insights"]
+        complaints = insights_data["complaints"]
+        strengths = insights_data["strengths"]
+        
         recommendations = build_recommendations(complaints, aspect_insights, strengths)
+        
+        # Inject styling UI untuk frontend (agar plug-and-play dengan komponen DashboardProduk.tsx)
+        ui_colors = [
+            {"warna": "bg-red-50", "aksen": "text-red-600"},
+            {"warna": "bg-amber-50", "aksen": "text-amber-600"},
+            {"warna": "bg-green-50", "aksen": "text-green-600"}
+        ]
+        for i, rec in enumerate(recommendations):
+            color_style = ui_colors[i % len(ui_colors)]
+            rec["warna"] = color_style["warna"]
+            rec["aksen"] = color_style["aksen"]
 
         result = {
             "summary": _build_summary(predictions),
@@ -169,7 +179,7 @@ def _build_trends(rows: list[ReviewRow], predictions: list[dict]) -> list[dict]:
 
     return [
         {
-            "period": period,
+            "name": period,
             "positif": counts.get("positif", 0),
             "netral": counts.get("netral", 0),
             "negatif": counts.get("negatif", 0),
