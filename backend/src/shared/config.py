@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str = "your-anon-key"
     supabase_service_role_key: str = "your-service-role-key"
     supabase_storage_bucket: str = "uploads"
-    backend_public_url: str = "https://hara25-analisis-sentimen.hf.space"
+    backend_public_url: str = "http://127.0.0.1:8000"
     frontend_public_url: str = "http://localhost:3000"
 
     @property

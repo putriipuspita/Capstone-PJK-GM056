@@ -42,6 +42,36 @@ def upload_csv_file(*, content: bytes, file_name: str, user_id: str, product_id:
     return storage_path
 
 
+def upload_avatar_file(*, content: bytes, file_name: str, user_id: str) -> str:
+    safe_file_name = file_name.replace("\\", "_").replace("/", "_")
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    unique_id = str(uuid4())
+    storage_path = f"avatars/{user_id}/{timestamp}-{unique_id}-{safe_file_name}"
+    
+    client = get_supabase_service_client()
+    
+    content_type = "image/jpeg"
+    if file_name.lower().endswith(".png"):
+        content_type = "image/png"
+    elif file_name.lower().endswith(".webp"):
+        content_type = "image/webp"
+
+    client.storage.from_(settings.supabase_storage_bucket).upload(
+        path=storage_path,
+        file=content,
+        file_options={
+            "content-type": content_type,
+            "upsert": "false",
+        },
+    )
+    
+    # Supabase Python SDK doesn't have get_public_url directly on the from_() object in older versions
+    # We construct it manually using the Supabase URL
+    public_url = f"{settings.supabase_url}/storage/v1/object/public/{settings.supabase_storage_bucket}/{storage_path}"
+    return public_url
+
+
+
 def _build_storage_path(*, file_name: str, user_id: str, product_id: str) -> str:
     safe_file_name = file_name.replace("\\", "_").replace("/", "_")
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
