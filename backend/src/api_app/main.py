@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api_app.routes import analysis, auth, dashboard, health, products, upload, users
+from src.api_app.routes import analysis, auth, dashboard, health, products, testimonials, upload, users
 from src.shared.config import settings
 
 def create_app() -> FastAPI:
@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
     app.include_router(analysis.router, prefix=settings.api_prefix)
     app.include_router(products.router, prefix=settings.api_prefix)
     app.include_router(dashboard.router, prefix=settings.api_prefix)
+    app.include_router(testimonials.router, prefix=settings.api_prefix)
 
     return app
 
