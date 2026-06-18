@@ -39,7 +39,7 @@ export default function Riwayat() {
   const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
 
   // Ambil Data Riwayat
-  const fetchRiwayat = async () => {
+  const fetchRiwayat = async (tampilkanLoading = true) => {
     try {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -65,13 +65,29 @@ export default function Riwayat() {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      if (tampilkanLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRiwayat();
+    fetchRiwayat(true);
   }, []);
+
+  // Polling data jika ada analisis yang sedang berjalan
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const adaProsesBerjalan = riwayatList.some(item => item.process_status === 'pending' || item.process_status === 'processing');
+    
+    if (adaProsesBerjalan) {
+      interval = setInterval(() => {
+        fetchRiwayat(false);
+      }, 5000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [riwayatList]);
 
   // Logika Filter Pencarian & Status
   const dataTampil = riwayatList.filter(item => {

@@ -24,4 +24,4 @@ class AnalysisRun(Base):
 
     product = relationship("Product", back_populates="analysis_runs")
     dataset = relationship("Dataset", back_populates="analysis_runs")
-    result = relationship("AnalysisResult", back_populates="analysis_run", uselist=False)
+    result = relationship("AnalysisResult", back_populates="analysis_run", uselist=False, cascade="all, delete-orphan")

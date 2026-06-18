@@ -45,15 +45,17 @@ def upload_avatar(db: Session, user_id: str, file_name: str, content: bytes) -> 
 
 
 def change_password(user_id: str, email: str, old_password: str, new_password: str) -> None:
-    client = get_supabase_service_client()
+    from src.shared.storage import get_supabase_auth_client
+    auth_client = get_supabase_auth_client()
+    service_client = get_supabase_service_client()
     try:
         # 1. Validasi password lama dengan mencoba login
-        res = client.auth.sign_in_with_password({"email": email, "password": old_password})
+        res = auth_client.auth.sign_in_with_password({"email": email, "password": old_password})
         if not res.session:
             raise ValueError("Password lama tidak sesuai.")
             
         # 2. Update password
-        client.auth.admin.update_user_by_id(user_id, {"password": new_password})
+        service_client.auth.admin.update_user_by_id(user_id, {"password": new_password})
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Gagal mengubah password: {str(e)}")
 

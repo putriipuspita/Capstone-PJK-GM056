@@ -56,14 +56,18 @@ def upload_avatar_file(*, content: bytes, file_name: str, user_id: str) -> str:
     elif file_name.lower().endswith(".webp"):
         content_type = "image/webp"
 
-    client.storage.from_(settings.supabase_storage_bucket).upload(
-        path=storage_path,
-        file=content,
-        file_options={
-            "content-type": content_type,
-            "upsert": "false",
-        },
-    )
+    try:
+        client.storage.from_(settings.supabase_storage_bucket).upload(
+            path=storage_path,
+            file=content,
+            file_options={
+                "content-type": content_type,
+                "upsert": "false",
+            },
+        )
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f"Storage error: {str(e)}")
     
     # Supabase Python SDK doesn't have get_public_url directly on the from_() object in older versions
     # We construct it manually using the Supabase URL

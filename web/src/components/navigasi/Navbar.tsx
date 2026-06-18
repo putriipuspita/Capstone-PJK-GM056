@@ -15,6 +15,9 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
   // State untuk daftar produk
   const [daftarProduk, setDaftarProduk] = useState<{ id: string, name: string }[]>([]);
 
+  // State untuk profil pengguna
+  const [profil, setProfil] = useState<{ store_name: string, profile_image_url: string | null }>({ store_name: 'Sentix Shop', profile_image_url: null });
+
   // Fetch daftar produk dari API
   useEffect(() => {
     const fetchProduk = async () => {
@@ -33,7 +36,26 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
         console.error('Gagal mengambil daftar produk:', err);
       }
     };
+
+    const fetchProfil = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfil({ store_name: data.store_name, profile_image_url: data.profile_image_url });
+        }
+      } catch (err) {
+        console.error('Gagal mengambil profil:', err);
+      }
+    };
+
     fetchProduk();
+    fetchProfil();
   }, []);
 
   // Fungsi saat dropdown filter berubah
@@ -142,14 +164,18 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
         <div className="flex items-center gap-3">
           {/* Nama Toko */}
           <div className="hidden md:flex bg-hero px-3 py-1.5 rounded-lg shadow-sm">
-            <p className="text-[10px] font-bold text-white capitalize tracking-wide">Sentix shop</p>
+            <p className="text-[10px] font-bold text-white capitalize tracking-wide">{profil.store_name}</p>
           </div>
 
           {/* Foto Profil */}
-          <div className={`${adaFilter ? 'hidden md:flex' : 'flex'} w-9 h-9 rounded-full bg-hero/10 items-center justify-center border border-hero/20`}>
-            <svg className="w-5 h-5 text-hero" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
+          <div className={`${adaFilter ? 'hidden md:flex' : 'flex'} w-9 h-9 rounded-full bg-hero/10 items-center justify-center border border-hero/20 overflow-hidden`}>
+            {profil.profile_image_url ? (
+              <img src={profil.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <svg className="w-5 h-5 text-hero" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
+            )}
           </div>
         </div>
 

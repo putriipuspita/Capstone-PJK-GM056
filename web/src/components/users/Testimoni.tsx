@@ -8,19 +8,66 @@ const Testimoni = () => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
 
+  const [nama, setNama] = useState('');
+  const [jabatan, setJabatan] = useState('');
+  const [pesan, setPesan] = useState('');
+  const [loading, setLoading] = useState(false);
+
   // State untuk Notifikasi
   const [showNotif, setShowNotif] = useState(false);
+  const [pesanNotif, setPesanNotif] = useState('');
+  const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
 
   // Fungsi untuk menangani pengiriman form
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsOpen(false);
+    
+    if (!nama || !pesan || rating === 0) {
+      setPesanNotif('Harap lengkapi nama, pesan, dan rating bintang.');
+      setTipeNotif('error');
+      setShowNotif(true);
+      return;
+    }
 
-    // Tampilkan Notifikasi Sukses
-    setShowNotif(true);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/testimonials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: nama,
+          role: jabatan,
+          message: pesan,
+          rating: rating
+        })
+      });
 
-    // Reset form jika perlu
-    setRating(0);
+      if (response.ok) {
+        setIsOpen(false);
+        setNama('');
+        setJabatan('');
+        setPesan('');
+        setRating(0);
+        setPesanNotif('Terima kasih, Testimoni telah kami terima.');
+        setTipeNotif('sukses');
+        setShowNotif(true);
+      } else {
+        const errorData = await response.json();
+        setPesanNotif(errorData.detail || 'Gagal mengirim testimoni.');
+        setTipeNotif('error');
+        setShowNotif(true);
+      }
+    } catch (error) {
+      setPesanNotif('Terjadi kesalahan jaringan.');
+      setTipeNotif('error');
+      setShowNotif(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,6 +139,9 @@ const Testimoni = () => {
                   <input
                     type="text"
                     placeholder="Nama Lengkap"
+                    value={nama}
+                    onChange={(e) => setNama(e.target.value)}
+                    disabled={loading}
                     className="w-full bg-slate-50 border-2 border-transparent focus:border-hero/10 focus:bg-white rounded-xl px-4 py-2.5 text-sm outline-none transition-all placeholder:text-[12px] placeholder:text-slate-400"
                   />
                 </div>
@@ -102,6 +152,9 @@ const Testimoni = () => {
                   <input
                     type="text"
                     placeholder="Contoh: Owner Toko"
+                    value={jabatan}
+                    onChange={(e) => setJabatan(e.target.value)}
+                    disabled={loading}
                     className="w-full bg-slate-50 border-2 border-transparent focus:border-hero/10 focus:bg-white rounded-xl px-4 py-2.5 text-sm outline-none transition-all placeholder:text-[12px] placeholder:text-slate-400"
                   />
                 </div>
@@ -112,6 +165,9 @@ const Testimoni = () => {
                   <textarea
                     rows={3}
                     placeholder="Apa pendapat kamu tentang layanan kami?"
+                    value={pesan}
+                    onChange={(e) => setPesan(e.target.value)}
+                    disabled={loading}
                     className="w-full bg-slate-50 border-2 border-transparent focus:border-hero/10 focus:bg-white rounded-xl px-4 py-2.5 text-sm outline-none transition-all resize-none placeholder:text-[12px] placeholder:text-slate-400"
                   ></textarea>
                 </div>
@@ -120,9 +176,10 @@ const Testimoni = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-slate-800 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-black transition-all shadow-lg shadow-slate-100 active:scale-95 mt-1"
+                disabled={loading}
+                className="w-full bg-slate-800 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-black transition-all shadow-lg shadow-slate-100 active:scale-95 mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Kirim Testimoni
+                {loading ? 'Mengirim...' : 'Kirim Testimoni'}
               </button>
             </form>
           </div>
@@ -133,8 +190,8 @@ const Testimoni = () => {
       <Notifikasi
         show={showNotif}
         onClose={() => setShowNotif(false)}
-        pesan="Terima kasih, Testimoni telah kami terima."
-        tipe="sukses"
+        pesan={pesanNotif}
+        tipe={tipeNotif}
       />
     </>
   );

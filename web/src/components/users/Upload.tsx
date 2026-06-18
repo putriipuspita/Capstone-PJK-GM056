@@ -68,45 +68,8 @@ const Upload = () => {
         throw new Error(errorData.detail || 'Terjadi kesalahan saat mengunggah');
       }
 
-      const data = await response.json();
-      const analysisId = data.analysis_id;
-
-      // Fungsi Polling
-      const selangWaktu = setInterval(async () => {
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analysis/${analysisId}/status`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const statusData = await res.json();
-            setProgres(statusData.progress || 0);
-
-            if (statusData.progress < 30) {
-              setTahapAnalisis('Membaca data ulasan...');
-            } else if (statusData.progress < 60) {
-              setTahapAnalisis('Menganalisis sentimen...');
-            } else if (statusData.progress < 90) {
-              setTahapAnalisis('Mengkategorikan topik...');
-            } else {
-              setTahapAnalisis('Menyusun hasil analisis...');
-            }
-
-            if (statusData.status === 'completed') {
-              clearInterval(selangWaktu);
-              setTimeout(() => {
-                setSedangMenganalisis(false);
-                navigasi.push(`/users/dashboard-produk?id=${analysisId}&p=${encodeURIComponent(namaProduk)}`);
-              }, 800);
-            } else if (statusData.status === 'failed') {
-              clearInterval(selangWaktu);
-              setSedangMenganalisis(false);
-              alert('Analisis gagal: ' + statusData.error_message);
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }, 1000);
+      // Berhasil mengunggah, langsung diarahkan ke riwayat
+      navigasi.push('/users/riwayat');
 
     } catch (error) {
       setSedangMenganalisis(false);

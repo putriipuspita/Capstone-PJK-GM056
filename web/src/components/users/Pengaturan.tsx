@@ -99,7 +99,12 @@ const Pengaturan = () => {
         setProfile(prev => ({ ...prev, profile_image_url: data.message }));
         triggerNotif('Foto profil berhasil diperbarui', 'sukses');
       } else {
-        triggerNotif('Gagal mengunggah foto profil', 'error');
+        let errDetails = 'Gagal mengunggah foto profil';
+        try {
+          const errData = await res.json();
+          if (errData.detail) errDetails = errData.detail;
+        } catch(e) {}
+        triggerNotif(errDetails, 'error');
       }
     } catch (error) {
       triggerNotif('Terjadi kesalahan saat mengunggah foto', 'error');

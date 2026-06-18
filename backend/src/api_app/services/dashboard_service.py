@@ -16,9 +16,9 @@ def build_global_dashboard(analysis_runs: list[AnalysisRun]) -> dict:
             continue
 
         summary = analysis_run.result.summary
-        positive = int(summary.get("positive", 0))
-        neutral = int(summary.get("neutral", 0))
-        negative = int(summary.get("negative", 0))
+        positive = int(summary.get("positif", 0))
+        neutral = int(summary.get("netral", 0))
+        negative = int(summary.get("negatif", 0))
         run_total = positive + neutral + negative
 
         summary_counts["positive"] += positive
@@ -27,16 +27,16 @@ def build_global_dashboard(analysis_runs: list[AnalysisRun]) -> dict:
         total_reviews += run_total
 
         for trend in analysis_run.result.trends:
-            period = trend.get("period", "Tidak diketahui")
-            trends[period]["positive"] += int(trend.get("positive", 0))
-            trends[period]["neutral"] += int(trend.get("neutral", 0))
-            trends[period]["negative"] += int(trend.get("negative", 0))
+            period = trend.get("name", "Tidak diketahui")
+            trends[period]["positive"] += int(trend.get("positif", 0))
+            trends[period]["neutral"] += int(trend.get("netral", 0))
+            trends[period]["negative"] += int(trend.get("negatif", 0))
 
         for aspect in analysis_run.result.aspect_insights:
-            aspects[aspect.get("aspect", "Lainnya")] += int(aspect.get("count", 0))
+            aspects[aspect.get("label", "Lainnya")] += int(aspect.get("jumlah", 0))
 
         for complaint in analysis_run.result.complaints:
-            complaints[complaint.get("label", "Keluhan lainnya")] += int(complaint.get("count", 0))
+            complaints[complaint.get("label", "Keluhan lainnya")] += int(complaint.get("jumlah", 0))
 
         product_rows.append(
             {
