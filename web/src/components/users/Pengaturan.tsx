@@ -21,12 +21,88 @@ const Pengaturan = () => {
   const [pesanNotif, setPesanNotif] = useState('');
   const [tipeNotif, setTipeNotif] = useState<'sukses' | 'info' | 'error'>('sukses');
 
+  // State Data
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState({
+    store_name: '',
+    email: '',
+    profile_image_url: ''
+  });
+  const [editStoreName, setEditStoreName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+
+  const [passwordLama, setPasswordLama] = useState('');
+  const [passwordBaru, setPasswordBaru] = useState('');
+  const [konfirmasiPassword, setKonfirmasiPassword] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Ambil Data Profil
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = '/auth/login';
+          return;
+        }
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfile({
+            store_name: data.store_name,
+            email: data.email,
+            profile_image_url: data.profile_image_url || ''
+          });
+          setEditStoreName(data.store_name);
+          setEditEmail(data.email);
+        } else if (res.status === 401) {
+          window.location.href = '/auth/login';
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Fungsi klik input file
   const handleUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile-picture`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(prev => ({ ...prev, profile_image_url: data.message }));
+        triggerNotif('Foto profil berhasil diperbarui', 'sukses');
+      } else {
+        triggerNotif('Gagal mengunggah foto profil', 'error');
+      }
+    } catch (error) {
+      triggerNotif('Terjadi kesalahan saat mengunggah foto', 'error');
     }
   };
 
@@ -38,28 +114,113 @@ const Pengaturan = () => {
   };
 
   // Fungsi simpan profil
-  const handleSimpanProfil = () => {
-    setIsEditingProfil(false);
-    triggerNotif('Profil toko berhasil diperbarui');
+  const handleSimpanProfil = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ store_name: editStoreName, email: editEmail })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfile({
+          ...profile,
+          store_name: data.store_name,
+          email: data.email
+        });
+        setIsEditingProfil(false);
+        triggerNotif('Profil toko berhasil diperbarui', 'sukses');
+      } else {
+        triggerNotif('Gagal memperbarui profil', 'error');
+      }
+    } catch (error) {
+      triggerNotif('Terjadi kesalahan jaringan', 'error');
+    }
   };
 
   // Fungsi simpan password
-  const handleSimpanKeamanan = () => {
-    setIsEditingKeamanan(false);
-    triggerNotif('Password berhasil diubah');
+  const handleSimpanKeamanan = async () => {
+    if (passwordBaru !== konfirmasiPassword) {
+      triggerNotif('Konfirmasi password tidak cocok', 'error');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ old_password: passwordLama, new_password: passwordBaru })
+      });
+
+      if (res.ok) {
+        setPasswordLama('');
+        setPasswordBaru('');
+        setKonfirmasiPassword('');
+        setIsEditingKeamanan(false);
+        triggerNotif('Password berhasil diubah', 'sukses');
+      } else {
+        triggerNotif('Gagal mengubah password. Pastikan password lama benar.', 'error');
+      }
+    } catch (error) {
+      triggerNotif('Terjadi kesalahan jaringan', 'error');
+    }
   };
 
   // Fungsi hapus data
-  const handleBersihkanData = () => {
-    setIsModalDataOpen(false);
-    triggerNotif('Seluruh data riwayat berhasil dibersihkan', 'info');
+  const handleBersihkanData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/data`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setIsModalDataOpen(false);
+        triggerNotif('Seluruh data riwayat berhasil dibersihkan', 'info');
+      } else {
+        triggerNotif('Gagal membersihkan data', 'error');
+      }
+    } catch (error) {
+      triggerNotif('Terjadi kesalahan', 'error');
+    }
   };
 
   // Fungsi hapus akun
-  const handleHapusAkun = () => {
-    setIsModalAkunOpen(false);
-    triggerNotif('Akun berhasil dihapus', 'sukses');
+  const handleHapusAkun = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setIsModalAkunOpen(false);
+        localStorage.removeItem('access_token');
+        window.location.href = '/auth/login';
+      } else {
+        triggerNotif('Gagal menghapus akun', 'error');
+      }
+    } catch (error) {
+      triggerNotif('Terjadi kesalahan', 'error');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <div className="w-16 h-16 rounded-full border-4 border-slate-100 border-t-hero animate-spin mb-4"></div>
+        <p className="text-slate-500 font-medium">Memuat pengaturan...</p>
+      </div>
+    );
+  }
 
   return (
     // Halaman Pengaturan
@@ -115,9 +276,13 @@ const Pengaturan = () => {
               <div className="relative group">
                 {/* Icon Profil */}
                 <div className="w-16 h-16 bg-white rounded-full border-2 border-white shadow-sm flex items-center justify-center overflow-hidden text-slate-300">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  {profile.profile_image_url ? (
+                    <img src={profile.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
                 </div>
 
                 {/* Mode Edit Poto Profile */}
@@ -131,41 +296,28 @@ const Pengaturan = () => {
                     </svg>
                   </button>
                 )}
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
               </div>
 
               {/* Container Nama & Toko */}
               <div className="space-y-0.5">
-                <h3 className="font-black text-slate-800 text-lg leading-tight tracking-tight">Sentix</h3>
-                <p className="text-slate-500 text-sm font-medium">Sentix Official</p>
+                <h3 className="font-black text-slate-800 text-lg leading-tight tracking-tight">{profile.store_name}</h3>
+                <p className="text-slate-500 text-sm font-medium">{profile.email}</p>
               </div>
             </div>
 
             {/* Container Formulir Profile*/}
-            <div className="space-y-8">
-              {/* Container Input Nama & Toko */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Input Nama Lengkap */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold ml-1 text-slate-700 transition-colors">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    disabled={!isEditingProfil}
-                    defaultValue="Sentix"
-                    className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none transition-all ${isEditingProfil ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-50/50 border-transparent text-slate-500'}`}
-                  />
-                </div>
-
-                {/* Input Nama Toko */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold ml-1 text-slate-700 transition-colors">Nama Toko</label>
-                  <input
-                    type="text"
-                    disabled={!isEditingProfil}
-                    defaultValue="Sentix Official"
-                    className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none transition-all ${isEditingProfil ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-50/50 border-transparent text-slate-500'}`}
-                  />
-                </div>
+            <div className="space-y-6">
+              {/* Input Nama Toko */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold ml-1 text-slate-700 transition-colors">Nama Toko</label>
+                <input
+                  type="text"
+                  disabled={!isEditingProfil}
+                  value={isEditingProfil ? editStoreName : profile.store_name}
+                  onChange={(e) => setEditStoreName(e.target.value)}
+                  className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none transition-all ${isEditingProfil ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-50/50 border-transparent text-slate-500'}`}
+                />
               </div>
 
               {/* Input Email Toko */}
@@ -174,7 +326,8 @@ const Pengaturan = () => {
                 <input
                   type="email"
                   disabled={!isEditingProfil}
-                  defaultValue="admin@sentix.com"
+                  value={isEditingProfil ? editEmail : profile.email}
+                  onChange={(e) => setEditEmail(e.target.value)}
                   className={`w-full border-2 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none transition-all ${isEditingProfil ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-50/50 border-transparent text-slate-500'}`}
                 />
               </div>
@@ -233,6 +386,8 @@ const Pengaturan = () => {
                   type={lihatPasswordLama ? "text" : "password"}
                   disabled={!isEditingKeamanan}
                   placeholder="Masukkan password saat ini"
+                  value={passwordLama}
+                  onChange={(e) => setPasswordLama(e.target.value)}
                   className={`w-full border-2 rounded-xl px-4 py-2.5 pr-12 text-sm outline-none transition-all placeholder:text-slate-400 placeholder:font-normal ${isEditingKeamanan ? 'bg-white border-slate-200 text-slate-800 font-semibold' : 'bg-slate-50/50 border-transparent text-slate-500 font-semibold'}`}
                 />
                 {isEditingKeamanan && (
@@ -259,6 +414,8 @@ const Pengaturan = () => {
                   type={lihatPasswordBaru ? "text" : "password"}
                   disabled={!isEditingKeamanan}
                   placeholder="Minimal 8 karakter"
+                  value={passwordBaru}
+                  onChange={(e) => setPasswordBaru(e.target.value)}
                   className={`w-full border-2 rounded-xl px-4 py-2.5 pr-12 text-sm outline-none transition-all placeholder:text-slate-400 placeholder:font-normal ${isEditingKeamanan ? 'bg-white border-slate-200 text-slate-800 font-semibold' : 'bg-slate-50/50 border-transparent text-slate-500 font-semibold'}`}
                 />
                 {isEditingKeamanan && (
@@ -285,6 +442,8 @@ const Pengaturan = () => {
                   type={lihatKonfirmasi ? "text" : "password"}
                   disabled={!isEditingKeamanan}
                   placeholder="Ulangi password baru"
+                  value={konfirmasiPassword}
+                  onChange={(e) => setKonfirmasiPassword(e.target.value)}
                   className={`w-full border-2 rounded-xl px-4 py-2.5 pr-12 text-sm outline-none transition-all placeholder:text-slate-400 placeholder:font-normal ${isEditingKeamanan ? 'bg-white border-slate-200 text-slate-800 font-semibold' : 'bg-slate-50/50 border-transparent text-slate-500 font-semibold'}`}
                 />
                 {isEditingKeamanan && (

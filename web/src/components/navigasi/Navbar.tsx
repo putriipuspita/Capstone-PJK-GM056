@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
@@ -12,19 +12,51 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
   const tampilan = pathname === '/users' ? 'dashboard' : pathname.split('/').pop() || 'dashboard';
   const produkTerpilih = paramPencarian.get('p') || 'semua';
 
+  // State untuk daftar produk
+  const [daftarProduk, setDaftarProduk] = useState<{ id: string, name: string }[]>([]);
+
+  // Fetch daftar produk dari API
+  useEffect(() => {
+    const fetchProduk = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDaftarProduk(data);
+        }
+      } catch (err) {
+        console.error('Gagal mengambil daftar produk:', err);
+      }
+    };
+    fetchProduk();
+  }, []);
+
   // Fungsi saat dropdown filter berubah
   const gantiProduk = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
 
     // Jika sedang di halaman riwayat, hanya menampilkan filter tabel riwayat
     if (tampilan === 'riwayat') {
-      router.push(`/users/riwayat?p=${encodeURIComponent(value)}`);
+      if (value === 'semua') {
+        router.push(`/users/riwayat`);
+      } else {
+        const [id, ...nameParts] = value.split(':');
+        const name = nameParts.join(':');
+        router.push(`/users/riwayat?p=${encodeURIComponent(name)}`);
+      }
     } else {
       // Jika di dashboard, pindah ke dashboard-produk
       if (value === 'semua') {
         router.push('/users');
       } else {
-        router.push(`/users/dashboard-produk?p=${encodeURIComponent(value)}`);
+        const [id, ...nameParts] = value.split(':');
+        const name = nameParts.join(':');
+        router.push(`/users/dashboard-produk?product_id=${id}&p=${encodeURIComponent(name)}`);
       }
     }
   };
@@ -93,13 +125,16 @@ const KontenNavbar = (props: { onToggleSidebar?: () => void }) => {
         {/* Filter  */}
         {(tampilan === 'dashboard' || tampilan === 'riwayat' || tampilan === 'dashboard-produk') && (
           <select
-            value={produkTerpilih}
+            value={produkTerpilih === 'semua' ? 'semua' : daftarProduk.find(p => p.name === produkTerpilih) ? `${daftarProduk.find(p => p.name === produkTerpilih)?.id}:${produkTerpilih}` : 'semua'}
             onChange={gantiProduk}
             className="bg-slate-50 border border-slate-200 text-slate-600 text-[10px] md:text-xs font-medium rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-24 md:w-auto py-1 md:py-1.5 pl-2 md:pl-3 pr-8 md:pr-10 appearance-none outline-none cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:10px] md:bg-[length:14px] bg-[right_0.5rem_center] md:bg-[right_0.75rem_center] bg-no-repeat transition-all hover:bg-slate-100"
           >
             <option value="semua">Semua Produk</option>
-            <option value="Laptop Gaming X">Laptop Gaming X</option>
-            <option value="Mouse Wireless Pro">Mouse Wireless Pro</option>
+            {daftarProduk.map((produk) => (
+              <option key={produk.id} value={`${produk.id}:${produk.name}`}>
+                {produk.name}
+              </option>
+            ))}
           </select>
         )}
 

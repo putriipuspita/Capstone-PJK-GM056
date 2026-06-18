@@ -11,57 +11,111 @@ const Upload = () => {
   const [sedangMenganalisis, setSedangMenganalisis] = useState(false);
   const [progres, setProgres] = useState(0);
   const [tahapAnalisis, setTahapAnalisis] = useState('Membaca data ulasan...');
+  const [fileTerpilih, setFileTerpilih] = useState<File | null>(null);
   const refInputFile = useRef<HTMLInputElement>(null);
 
   // Fungsi Tombol Batal
   const tanganiBatal = () => {
     setNamaProduk('');
+    setFileTerpilih(null);
     if (refInputFile.current) {
       refInputFile.current.value = '';
     }
   };
 
   // Fungsi Tombol Mulai Analisis
-  const mulaiAnalisis = () => {
+  const mulaiAnalisis = async () => {
     if (!namaProduk) {
       alert('Silakan masukkan nama produk terlebih dahulu');
+      return;
+    }
+    const file = fileTerpilih || refInputFile.current?.files?.[0];
+    if (!file) {
+      alert('Silakan pilih file CSV terlebih dahulu');
       return;
     }
 
     setSedangMenganalisis(true);
     setProgres(0);
-    setTahapAnalisis('Membaca data ulasan...');
+    setTahapAnalisis('Mengunggah data...');
 
-    // Fungsi Loading
-    const selangWaktu = setInterval(() => {
-      setProgres((sebelumnya) => {
-        const progresBerikutnya = sebelumnya + Math.floor(Math.random() * 10) + 2;
-        const progresSaatIni = progresBerikutnya > 100 ? 100 : progresBerikutnya;
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/auth/login';
+        return;
+      }
 
-        // Fungsi Selesai Loading
-        if (progresSaatIni >= 100) {
-          clearInterval(selangWaktu);
-          setTimeout(() => {
-            setSedangMenganalisis(false);
-            navigasi.push(`/users/dashboard-produk?p=${encodeURIComponent(namaProduk)}`);
-          }, 800);
-          return 100;
-        }
+      const formData = new FormData();
+      formData.append('product_name', namaProduk);
+      formData.append('file', file);
 
-        // Fungsi Tahap Analisis
-        if (progresSaatIni < 30) {
-          setTahapAnalisis('Membaca data ulasan...');
-        } else if (progresSaatIni < 60) {
-          setTahapAnalisis('Menganalisis sentimen...');
-        } else if (progresSaatIni < 90) {
-          setTahapAnalisis('Mengkategorikan topik...');
-        } else {
-          setTahapAnalisis('Menyusun dashboard hasil...');
-        }
-
-        return progresSaatIni;
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData,
       });
-    }, 400);
+
+      if (response.status === 401) {
+        window.location.href = '/auth/login';
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Terjadi kesalahan saat mengunggah');
+      }
+
+      const data = await response.json();
+      const analysisId = data.analysis_id;
+
+      // Fungsi Polling
+      const selangWaktu = setInterval(async () => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analysis/${analysisId}/status`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const statusData = await res.json();
+            setProgres(statusData.progress || 0);
+
+            if (statusData.progress < 30) {
+              setTahapAnalisis('Membaca data ulasan...');
+            } else if (statusData.progress < 60) {
+              setTahapAnalisis('Menganalisis sentimen...');
+            } else if (statusData.progress < 90) {
+              setTahapAnalisis('Mengkategorikan topik...');
+            } else {
+              setTahapAnalisis('Menyusun hasil analisis...');
+            }
+
+            if (statusData.status === 'completed') {
+              clearInterval(selangWaktu);
+              setTimeout(() => {
+                setSedangMenganalisis(false);
+                navigasi.push(`/users/dashboard-produk?id=${analysisId}&p=${encodeURIComponent(namaProduk)}`);
+              }, 800);
+            } else if (statusData.status === 'failed') {
+              clearInterval(selangWaktu);
+              setSedangMenganalisis(false);
+              alert('Analisis gagal: ' + statusData.error_message);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 1000);
+
+    } catch (error) {
+      setSedangMenganalisis(false);
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('Terjadi kesalahan yang tidak diketahui');
+      }
+    }
   };
 
 
@@ -102,36 +156,57 @@ const Upload = () => {
             <div
               onDragOver={(e) => { e.preventDefault(); setSedangMenyeret(true); }}
               onDragLeave={() => setSedangMenyeret(false)}
-              onDrop={(e) => { e.preventDefault(); setSedangMenyeret(false); }}
+              onDrop={(e) => { 
+                e.preventDefault(); 
+                setSedangMenyeret(false); 
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  setFileTerpilih(e.dataTransfer.files[0]);
+                  if (refInputFile.current) {
+                    refInputFile.current.files = e.dataTransfer.files;
+                  }
+                }
+              }}
               className={`
                 relative border-2 border-dashed rounded-3xl p-12 transition-all duration-300 flex flex-col items-center justify-center text-center group
                 ${sedangMenyeret ? 'border-hero bg-hero/5 scale-[1.01]' : 'border-slate-200 bg-slate-50/50 hover:border-slate-400 hover:bg-white'}
+                ${fileTerpilih ? 'border-hero bg-hero/5' : ''}
               `}
             >
 
               {/* Ikon Upload */}
               <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-5 text-slate-400 group-hover:bg-hero/10 group-hover:text-hero transition-all duration-300">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
+                {fileTerpilih ? (
+                  <svg className="w-10 h-10 text-hero" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                )}
               </div>
 
               {/* Deskripsi */}
-              <h3 className="text-base font-bold text-slate-700 mb-2 tracking-tight">Drag & drop file disini</h3>
-              <p className="text-xs text-slate-400 mb-6 font-medium">atau</p>
+              <h3 className="text-base font-bold text-slate-700 mb-2 tracking-tight">
+                {fileTerpilih ? fileTerpilih.name : 'Drag & drop file disini'}
+              </h3>
+              {!fileTerpilih && <p className="text-xs text-slate-400 mb-6 font-medium">atau</p>}
 
               {/* Input File */}
               <input
                 ref={refInputFile}
                 type="file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv"
+                onChange={(e) => setFileTerpilih(e.target.files?.[0] || null)}
               />
 
               {/* Tombol Pilih File */}
-              <button className="bg-hero text-white px-10 py-3 rounded-xl font-bold text-sm shadow-lg shadow-hero/20 hover:scale-105 active:scale-95 transition-all">
-                Pilih File
-              </button>
+              {!fileTerpilih && (
+                <button className="bg-hero text-white px-10 py-3 rounded-xl font-bold text-sm shadow-lg shadow-hero/20 hover:scale-105 active:scale-95 transition-all pointer-events-none">
+                  Pilih File
+                </button>
+              )}
             </div>
           </div>
 

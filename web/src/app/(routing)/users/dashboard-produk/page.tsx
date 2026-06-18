@@ -6,8 +6,10 @@ import DashboardProduk from '@/components/users/DashboardProduk';
 function KontenDashboardProduk() {
   const paramPencarian = useSearchParams();
   const namaProduk = paramPencarian.get('p') || 'Produk Tanpa Nama';
+  const analysisId = paramPencarian.get('id') || '';
+  const productId = paramPencarian.get('product_id') || '';
   
-  return <DashboardProduk namaProduk={namaProduk} />;
+  return <DashboardProduk analysisId={analysisId} productId={productId} namaProduk={namaProduk} />;
 }
 
 export default function Page() {

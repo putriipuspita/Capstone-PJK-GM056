@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import PaginationKustom from '../elements/PaginationKustom';
 import StatistikKartu from '../elements/StatistikKartu';
@@ -61,7 +62,8 @@ export default function Dashboard() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          cache: 'no-store'
         });
         if (response.status === 401) {
           localStorage.removeItem('access_token');
@@ -419,7 +421,11 @@ export default function Dashboard() {
             <tbody className="text-sm">
               {itemSaatIni.map((baris, i) => (
                 <tr key={i} className="hover:bg-slate-50/30 transition-all">
-                  <td className="py-4 px-4 font-bold text-slate-900 border border-slate-200 sticky left-0 bg-white z-10">{baris.product_name}</td>
+                  <td className="py-4 px-4 font-bold text-slate-900 border border-slate-200 sticky left-0 bg-white z-10">
+                    <Link href={`/users/dashboard-produk?id=${baris.analysis_id}&p=${encodeURIComponent(baris.product_name)}`} className="hover:text-hero transition-colors">
+                      {baris.product_name}
+                    </Link>
+                  </td>
                   <td className="py-4 px-2 text-center font-medium text-slate-500 border border-slate-200">{baris.total_reviews}</td>
                   <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.positive}</td>
                   <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.neutral}</td>
