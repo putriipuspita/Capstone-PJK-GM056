@@ -8,6 +8,17 @@ ENV/
 env/
 .ipynb_checkpoints/
 
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+web/.env
+web/.env.*
+!web/.env.example
+
 
 # Operating System files
 .DS_Store
