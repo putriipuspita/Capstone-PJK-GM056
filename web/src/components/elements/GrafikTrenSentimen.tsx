@@ -68,7 +68,7 @@ const GrafikTrenSentimen: React.FC<GrafikTrenSentimenProps> = ({
   // Pastikan filter aktif selalu tersedia di dalam availableFilters
   React.useEffect(() => {
     if (!availableFilters.includes(filterWaktu as any)) {
-      setFilterWaktu(availableFilters[availableFilters.length - 1]);
+      setFilterWaktu(availableFilters[availableFilters.length - 1] as FilterWaktuType);
     }
   }, [availableFilters, filterWaktu]);
 
