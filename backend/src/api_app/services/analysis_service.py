@@ -1,4 +1,8 @@
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
+
+# Executor antrean internal Python untuk melindungi API AI
+ai_task_executor = ThreadPoolExecutor(max_workers=1)
 
 from sqlalchemy.orm import Session
 

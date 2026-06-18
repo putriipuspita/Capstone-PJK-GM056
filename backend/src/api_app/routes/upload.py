@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from src.api_app.services.analysis_service import process_analysis
+from src.api_app.services.analysis_service import ai_task_executor, process_analysis
 from src.shared.auth import CurrentUser, get_current_user
 from src.shared.database import get_db
 from src.shared.repositories.analysis_repository import create_analysis_run
@@ -71,7 +71,8 @@ async def upload_reviews(
     )
     db.commit()
 
-    background_tasks.add_task(process_analysis, analysis_run.id)
+    # Menggunakan executor internal Python sebagai antrean (Queue)
+    ai_task_executor.submit(process_analysis, analysis_run.id)
 
     return {
         "analysis_id": analysis_run.id,
