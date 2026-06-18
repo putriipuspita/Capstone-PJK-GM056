@@ -34,7 +34,7 @@ const GrafikTrenSentimen: React.FC<GrafikTrenSentimenProps> = ({
   rounded = 'rounded-3xl',
 }) => {
   const [isMounted, setIsMounted] = React.useState(false);
-  const [filterWaktu, setFilterWaktu] = React.useState<'harian' | 'mingguan' | 'bulanan' | 'tahunan'>('harian');
+  const [filterWaktu, setFilterWaktu] = React.useState<'harian' | 'mingguan' | 'bulanan' | 'tahunan'>('tahunan');
 
   React.useEffect(() => {
     setIsMounted(true);

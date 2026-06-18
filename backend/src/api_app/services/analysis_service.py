@@ -75,7 +75,7 @@ def process_analysis(analysis_id: str) -> None:
             rec["aksen"] = color_style["aksen"]
 
         result = {
-            "summary": _build_summary(predictions),
+            "summary": _build_summary(predictions, rows),
             "trends": _build_trends(rows, predictions),
             "aspect_insights": aspect_insights,
             "complaints": complaints,
@@ -154,7 +154,7 @@ def _predict_in_batches(
     return predictions
 
 
-def _build_summary(predictions: list[dict]) -> dict:
+def _build_summary(predictions: list[dict], rows: list[ReviewRow]) -> dict:
     counts = Counter(prediction["sentiment"] for prediction in predictions)
     total = len(predictions)
 
@@ -162,6 +162,17 @@ def _build_summary(predictions: list[dict]) -> dict:
     netral = counts.get("netral", 0)
     negatif = counts.get("negatif", 0)
     satisfaction_score = round(((positif + (netral * 0.5)) / total) * 100) if total else 0
+
+    average_rating = 0.0
+    valid_ratings = []
+    for r in rows:
+        try:
+            if r.rating:
+                valid_ratings.append(float(r.rating))
+        except ValueError:
+            pass
+    if valid_ratings:
+        average_rating = round(sum(valid_ratings) / len(valid_ratings), 1)
 
     return {
         "positif": positif,
@@ -171,6 +182,7 @@ def _build_summary(predictions: list[dict]) -> dict:
         "netral_percentage": round((netral / total) * 100, 1) if total else 0,
         "negatif_percentage": round((negatif / total) * 100, 1) if total else 0,
         "satisfaction_score": satisfaction_score,
+        "average_rating": average_rating,
     }
 
 

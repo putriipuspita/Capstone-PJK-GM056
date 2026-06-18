@@ -41,6 +41,7 @@ interface DashboardData {
     neutral: number;
     negative: number;
     satisfaction_score: number;
+    average_rating: number;
   }[];
 }
 
@@ -134,7 +135,7 @@ export default function Dashboard() {
   // Pengurutan Positif terbanyak, lalu Rating tertinggi
   const dataTerurut = [...dashboardData.products].sort((a, b) => {
     if (b.positive !== a.positive) return b.positive - a.positive;
-    return b.satisfaction_score - a.satisfaction_score;
+    return b.average_rating - a.average_rating;
   });
 
   // Menghitung Jumlah Halaman & Data Per Halaman Tabel Ringkasan
@@ -432,7 +433,7 @@ export default function Dashboard() {
                   <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.negative}</td>
                   <td className="py-4 px-4 text-center border border-slate-200">
                     <span className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-xl font-black text-xs">
-                      ⭐ {baris.satisfaction_score}
+                      ⭐ {baris.average_rating}
                     </span>
                   </td>
                 </tr>

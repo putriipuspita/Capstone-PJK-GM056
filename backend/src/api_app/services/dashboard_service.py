@@ -47,6 +47,7 @@ def build_global_dashboard(analysis_runs: list[AnalysisRun]) -> dict:
                 "neutral": neutral,
                 "negative": negative,
                 "satisfaction_score": int(summary.get("satisfaction_score", 0)),
+                "average_rating": float(summary.get("average_rating", 0.0)),
             }
         )
 
