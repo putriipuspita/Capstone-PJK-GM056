@@ -2,7 +2,7 @@
 
 ## 1. Penjelasan Aplikasi Sentix
 
-**Sentix** adalah sebuah platform analitik berbasis kecerdasan buatan (AI) yang dirancang khusus untuk menganalisis sentimen dari ulasan pelanggan. Aplikasi ini membantu pemilik bisnis online dan _e-commerce_ untuk memahami secara mendalam apa yang dipikirkan pelanggan tentang produk mereka-apakah itu respons positif, netral, maupun negatif—serta mengekstrak wawasan (_insight_) yang dapat langsung ditindaklanjuti secara otomatis tanpa perlu membaca ribuan ulasan secara manual.
+**Sentix** adalah sebuah platform analitik berbasis kecerdasan buatan (AI) yang dirancang khusus untuk menganalisis sentimen dari ulasan pelanggan. Aplikasi ini membantu pemilik bisnis online dan _e-commerce_ untuk memahami secara mendalam apa yang dipikirkan pelanggan tentang produk mereka-apakah itu respons positif, netral, maupun negatif serta mengekstrak wawasan (_insight_) yang dapat langsung ditindaklanjuti secara otomatis tanpa perlu membaca ribuan ulasan secara manual.
 
 ## 2. Latar Belakang Masalah
 
@@ -14,6 +14,7 @@ Di era digital, volume ulasan (_reviews_) pelanggan yang masuk ke sebuah toko sa
 - **Pemetaan Sentimen**: Mengkategorikan sentimen pelanggan (Positif, Netral, Negatif) secara akurat.
 - **Ekstraksi Topik Utama**: Mengidentifikasi aspek utama yang paling sering dibicarakan (Top Aspects) dan menemukan kelemahan spesifik melalui keluhan utama (Top Complaints).
 - **Rekomendasi Berbasis AI**: Memberikan rekomendasi bisnis yang _actionable_ kepada pemilik toko berdasarkan temuan data.
+
 
 ## 4. Teknologi yang Digunakan
 
@@ -33,13 +34,13 @@ Proyek ini dibangun dengan arsitektur **Tri-Service** yang terintegrasi untuk st
 - **Rekomendasi Strategis (AI)**: Memberikan saran bisnis spesifik dengan mekanisme _fallback_ ke _Rule-Based_ jika AI sedang mengalami _limit_.
 - **Pemrosesan Latar Belakang (_Background Queue_)**: Unggah _dataset_ besar tanpa takut aplikasi _freeze_, karena analisis dijalankan secara paralel di latar belakang.
 
-## 6. Arsitektur Tri-Service (Rekomendasi Hosting)
+## 6. Arsitektur Tri-Service 
 
 Karena API Google Gemini memblokir IP dari peladen Hugging Face Spaces, aplikasi ini dirancang memecah beban ke 3 tempat:
 
 1. **Frontend (Next.js)** $\rightarrow$ Di-hosting di **Vercel**. Menangani antarmuka UI/UX.
 2. **Core Backend (FastAPI)** $\rightarrow$ Di-hosting di **Hugging Face Spaces**. Menangani komputasi berat, pemrosesan antrean CSV latar belakang, dan model _Machine Learning_ (butuh RAM besar 16GB).
-3. **Insight Microservice (FastAPI)** $\rightarrow$ Di-hosting di **Render / Vercel**. Menangani permintaan ringan ke API Google Gemini sebagai jembatan agar IP tidak diblokir.
+3. **Insight Microservice (FastAPI)** $\rightarrow$ Di-hosting di **Vercel**. Menangani permintaan ringan ke API Google Gemini sebagai jembatan agar IP tidak diblokir.
 
 ## 7. Cara Instalasi Lokal untuk Development
 
