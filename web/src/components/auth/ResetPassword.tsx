@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Notifikasi from '../elements/Notifikasi';
 
-const ResetPassword = () => {
+const ResetPasswordForm = () => {
   const [passwordBaru, setPasswordBaru] = useState('');
   const [konfirmasiPassword, setKonfirmasiPassword] = useState('');
   const [lihatPassword, setLihatPassword] = useState(false);
@@ -12,10 +13,21 @@ const ResetPassword = () => {
   const [showNotifikasi, setShowNotifikasi] = useState(false);
   const [pesanNotif, setPesanNotif] = useState('');
   const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
+  const [loading, setLoading] = useState(false);
+
+  const searchParams = useSearchParams();
+  const tokenHash = searchParams.get('token_hash') || '';
 
   // Fungsi menangani ubah password
-  const tanganiSimpan = (e: React.FormEvent) => {
+  const tanganiSimpan = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!tokenHash) {
+      setPesanNotif('Token reset password tidak ditemukan (link tidak valid).');
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+      return;
+    }
 
     if (passwordBaru !== konfirmasiPassword) {
       setPesanNotif('Konfirmasi password tidak cocok.');
@@ -32,15 +44,44 @@ const ResetPassword = () => {
       return;
     }
 
-    // Jika validasi sukses
-    setPesanNotif('Password berhasil diubah.');
-    setTipeNotif('sukses');
-    setShowNotifikasi(true);
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token_hash: tokenHash,
+          password: passwordBaru,
+        }),
+      });
 
-    // Redirect ke login
-    setTimeout(() => {
-      window.location.href = '/auth/login';
-    }, 2500);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Gagal mengubah password (token mungkin kadaluarsa)');
+      }
+
+      setPesanNotif('Password berhasil diubah.');
+      setTipeNotif('sukses');
+      setShowNotifikasi(true);
+
+      // Redirect ke login
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 2500);
+    } catch (error) {
+      if (error instanceof Error) {
+        setPesanNotif(error.message);
+      } else {
+        setPesanNotif(String(error));
+      }
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -129,14 +170,23 @@ const ResetPassword = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-hero text-white py-2.5 rounded-lg font-black text-sm hover:bg-navbar transition-all mt-4 shadow-[0_10px_30px_-10px_rgba(255,107,107,0.5)]"
+            disabled={loading}
+            className="w-full bg-hero text-white py-2.5 rounded-lg font-black text-sm hover:bg-navbar transition-all mt-4 shadow-[0_10px_30px_-10px_rgba(255,107,107,0.5)] disabled:opacity-50"
           >
-            SIMPAN PASSWORD
+            {loading ? 'MENYIMPAN...' : 'SIMPAN PASSWORD'}
           </button>
         </form>
 
       </div>
     </div>
+  );
+};
+
+const ResetPassword = () => {
+  return (
+    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-50">Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 };
 

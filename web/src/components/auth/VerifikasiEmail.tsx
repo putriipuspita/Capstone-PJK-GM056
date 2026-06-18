@@ -11,6 +11,16 @@ const VerifikasiEmail = () => {
   const [showNotifikasi, setShowNotifikasi] = useState(false);
   const [pesanNotif, setPesanNotif] = useState('');
   const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+
+  // Ambil email dari session storage saat komponen dimount
+  useEffect(() => {
+    const savedEmail = sessionStorage.getItem('verify_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
 
   // Logika Penghitung Waktu
   useEffect(() => {
@@ -47,7 +57,7 @@ const VerifikasiEmail = () => {
   };
 
   // Fungsi untuk memvalidasi dan mengirim kode OTP
-  const verifikasiKode = (e: React.FormEvent) => {
+  const verifikasiKode = async (e: React.FormEvent) => {
     e.preventDefault();
     const kodeLengkap = otp.join('');
 
@@ -59,15 +69,90 @@ const VerifikasiEmail = () => {
       return;
     }
 
-    // Jika kode benar
-    setPesanNotif('Verifikasi berhasil silahkan login.');
-    setTipeNotif('sukses');
-    setShowNotifikasi(true);
+    if (!email) {
+      setPesanNotif('Email tidak ditemukan, silakan register ulang.');
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+      return;
+    }
 
-    // Redirect ke login
-    setTimeout(() => {
-      window.location.href = '/auth/login';
-    }, 2500);
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          otp: kodeLengkap,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Kode OTP tidak valid atau kadaluarsa');
+      }
+
+      // Jika berhasil verifikasi
+      setPesanNotif('Verifikasi berhasil silahkan login.');
+      setTipeNotif('sukses');
+      setShowNotifikasi(true);
+
+      // Redirect ke login
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 2500);
+    } catch (error) {
+      if (error instanceof Error) {
+        setPesanNotif(error.message);
+      } else {
+        setPesanNotif(String(error));
+      }
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const kirimUlang = async () => {
+    if (!email) {
+      setPesanNotif('Email tidak ditemukan, silakan register ulang.');
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Terjadi kesalahan saat mengirim ulang OTP');
+      }
+
+      setPesanNotif('Kode OTP baru telah dikirim ke email Anda.');
+      setTipeNotif('sukses');
+      setShowNotifikasi(true);
+      setSisaWaktu(59);
+    } catch (error) {
+      if (error instanceof Error) {
+        setPesanNotif(error.message);
+      } else {
+        setPesanNotif(String(error));
+      }
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+    }
   };
 
   return (
@@ -99,7 +184,7 @@ const VerifikasiEmail = () => {
 
         {/* Deskripsi */}
         <p className="text-slate-500 font-medium text-xs leading-relaxed mb-8 px-1">
-          Kami telah mengirimkan 6 digit kode OTP ke <span className="text-slate-800 font-bold">anda@email.com</span>. Silakan masukkan kode di bawah ini.
+          Kami telah mengirimkan 6 digit kode OTP ke <span className="text-slate-800 font-bold">{email || 'email Anda'}</span>. Silakan masukkan kode di bawah ini.
         </p>
 
         {/* Formulir Verifikasi Email */}
@@ -125,9 +210,10 @@ const VerifikasiEmail = () => {
             {/* Button Verifikasi */}
             <button
               type="submit"
-              className="w-full bg-hero text-white py-2.5 rounded-lg font-black text-sm hover:bg-navbar transition-all"
+              disabled={loading}
+              className="w-full bg-hero text-white py-2.5 rounded-lg font-black text-sm hover:bg-navbar transition-all disabled:opacity-50"
             >
-              VERIFIKASI SEKARANG
+              {loading ? 'MEMVERIFIKASI...' : 'VERIFIKASI SEKARANG'}
             </button>
 
             {/* Deskripsi Kirim Ulang */}
@@ -136,7 +222,7 @@ const VerifikasiEmail = () => {
               {sisaWaktu > 0 ? (
                 <span className="text-slate-400 font-bold">Kirim ulang dalam {sisaWaktu}s</span>
               ) : (
-                <button type="button" onClick={() => setSisaWaktu(59)} className="text-hero font-bold hover:opacity-80 transition-opacity focus:outline-none">
+                <button type="button" onClick={kirimUlang} className="text-hero font-bold hover:opacity-80 transition-opacity focus:outline-none">
                   Kirim Ulang
                 </button>
               )}

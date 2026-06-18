@@ -5,74 +5,94 @@ import PaginationKustom from '../elements/PaginationKustom';
 import StatistikKartu from '../elements/StatistikKartu';
 import GrafikTrenSentimen from '../elements/GrafikTrenSentimen';
 
-// Data Dummy untuk Grafik Donat
-const dataDonat = [
-  { name: 'Positif', value: 1248, color: '#10b981' },
-  { name: 'Netral', value: 382, color: '#f59e0b' },
-  { name: 'Negatif', value: 309, color: '#ef4444' },
-];
+interface DashboardData {
+  summary: {
+    total_reviews: number;
+    positive: number;
+    neutral: number;
+    negative: number;
+    positive_percentage: number;
+    neutral_percentage: number;
+    negative_percentage: number;
+    satisfaction_score: number;
+  };
+  trends: {
+    period: string;
+    positive: number;
+    neutral: number;
+    negative: number;
+  }[];
+  top_aspects: {
+    label: string;
+    jumlah: number;
+    persen: number;
+  }[];
+  top_complaints: {
+    label: string;
+    jumlah: number;
+    persen: number;
+  }[];
+  products: {
+    analysis_id: string;
+    product_name: string;
+    total_reviews: number;
+    positive: number;
+    neutral: number;
+    negative: number;
+    satisfaction_score: number;
+  }[];
+}
 
-// Data Dummy untuk Grafik Tren
-const dataTren = [
-  { name: 'Apr', positif: 620, netral: 380, negatif: 150 },
-  { name: 'Mei', positif: 680, netral: 420, negatif: 180 },
-  { name: 'Juni', positif: 640, netral: 390, negatif: 160 },
-  { name: 'Juli', positif: 780, netral: 380, negatif: 140 },
-  { name: 'Agustus', positif: 720, netral: 340, negatif: 160 },
-  { name: 'September', positif: 850, netral: 360, negatif: 180 },
-];
-
-// Data Dummy untuk Top Aspek
-const dataTopAspek = [
-  { label: 'Kualitas Produk', jumlah: 842, persen: 43 },
-  { label: 'Pengiriman', jumlah: 532, persen: 27 },
-  { label: 'Pelayanan', jumlah: 311, persen: 16 },
-  { label: 'Harga', jumlah: 254, persen: 13 },
-];
-
-// Data Dummy untuk Data Keluhan
-const dataKeluhanUtama = [
-  { label: 'Pengiriman lama', jumlah: 128 },
-  { label: 'Kemasan rusak', jumlah: 72 },
-  { label: 'Produk tidak sesuai', jumlah: 58 },
-  { label: 'Respon penjual lambat', jumlah: 41 },
-];
-
-
-// Fungsi Pindah Halaman 
 export default function Dashboard() {
   const [halamanSaatIni, setHalamanSaatIni] = React.useState(1);
-  const [isMounted, setIsMounted] = React.useState(false);
+  const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
+  const [loading, setLoading] = React.useState(true);
   const itemPerHalaman = 5;
 
   React.useEffect(() => {
-    setIsMounted(true);
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = '/auth/login';
+          return;
+        }
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (response.status === 401) {
+          localStorage.removeItem('access_token');
+          window.location.href = '/auth/login';
+          return;
+        }
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data dashboard');
+        }
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
-  // Data Dummy untuk Tabel Ringkasan Perbandingan Produk
-  const dataTabelMentah = [
-    { name: 'Laptop Gaming X', total: 8, pos: 6, neu: 1, neg: 1, rating: 4.8 },
-    { name: 'Mouse Wireless Pro', total: 5, pos: 3, neu: 1, neg: 1, rating: 4.2 },
-    { name: 'Keyboard Mechanical', total: 12, pos: 10, neu: 1, neg: 1, rating: 4.9 },
-    { name: 'Monitor 4K Ultra', total: 4, pos: 3, neu: 0, neg: 1, rating: 4.5 },
-    { name: 'Headset RGB Pro', total: 15, pos: 12, neu: 2, neg: 1, rating: 4.7 },
-    { name: 'Smartphone Z1', total: 20, pos: 15, neu: 3, neg: 2, rating: 4.6 },
-    { name: 'Tablet Air Tab', total: 10, pos: 5, neu: 4, neg: 1, rating: 4.0 },
-    { name: 'Smartwatch V2', total: 7, pos: 6, neu: 0, neg: 1, rating: 4.8 },
-  ];
-
-  // Pengurutan Positif terbanyak, lalu Rating tertinggi
-  const dataTerurut = [...dataTabelMentah].sort((a, b) => {
-    if (b.pos !== a.pos) return b.pos - a.pos;
-    return b.rating - a.rating;
-  });
-
-  // Menghitung Jumlah Halaman & Data Per Halaman Tabel Ringkasan
-  const totalHalaman = Math.ceil(dataTerurut.length / itemPerHalaman);
-  const itemSaatIni = dataTerurut.slice((halamanSaatIni - 1) * itemPerHalaman, halamanSaatIni * itemPerHalaman);
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <div className="w-16 h-16 rounded-full border-4 border-slate-100 border-t-hero animate-spin mb-4"></div>
+        <p className="text-slate-500 font-medium">Memuat data dashboard...</p>
+      </div>
+    );
+  }
 
   // Tampilan Jika Data Kosong
-  if (dataTabelMentah.length === 0) {
+  if (!dashboardData || dashboardData.summary.total_reviews === 0) {
     return (
       // Container Jika Dashboard MasihKosong
       <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 animate-in fade-in zoom-in duration-700">
@@ -109,18 +129,44 @@ export default function Dashboard() {
     );
   }
 
-  // Data Dummy Statistik untuk ditampilkan di kartu
+  // Pengurutan Positif terbanyak, lalu Rating tertinggi
+  const dataTerurut = [...dashboardData.products].sort((a, b) => {
+    if (b.positive !== a.positive) return b.positive - a.positive;
+    return b.satisfaction_score - a.satisfaction_score;
+  });
+
+  // Menghitung Jumlah Halaman & Data Per Halaman Tabel Ringkasan
+  const totalHalaman = Math.ceil(dataTerurut.length / itemPerHalaman) || 1;
+  const itemSaatIni = dataTerurut.slice((halamanSaatIni - 1) * itemPerHalaman, halamanSaatIni * itemPerHalaman);
+
+  const dataDonat = [
+    { name: 'Positif', value: dashboardData.summary.positive, color: '#10b981' },
+    { name: 'Netral', value: dashboardData.summary.neutral, color: '#f59e0b' },
+    { name: 'Negatif', value: dashboardData.summary.negative, color: '#ef4444' },
+  ];
+
+  const dataTren = dashboardData.trends.map(t => ({
+    name: t.period,
+    positif: t.positive,
+    netral: t.neutral,
+    negatif: t.negative
+  }));
+
+  const dataTopAspek = dashboardData.top_aspects;
+  const dataKeluhanUtama = dashboardData.top_complaints;
+
+  // Data Statistik untuk ditampilkan di kartu
   const dataStatistik = [
     {
-      label: 'Total Analisis', value: '1.939', color: 'bg-blue-50', iconColor: 'text-blue-500',
+      label: 'Total Analisis', value: dashboardData.summary.total_reviews.toLocaleString(), color: 'bg-blue-50', iconColor: 'text-blue-500',
       icon: <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
     },
     {
-      label: 'Positif', value: '64.5%', color: 'bg-green-50', iconColor: 'text-green-500',
+      label: 'Positif', value: `${dashboardData.summary.positive_percentage}%`, color: 'bg-green-50', iconColor: 'text-green-500',
       icon: <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
     },
     {
-      label: 'Netral', value: '19.8%', color: 'bg-orange-50', iconColor: 'text-orange-500',
+      label: 'Netral', value: `${dashboardData.summary.neutral_percentage}%`, color: 'bg-orange-50', iconColor: 'text-orange-500',
       icon: (
         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="9" strokeWidth="2" />
@@ -129,10 +175,13 @@ export default function Dashboard() {
       )
     },
     {
-      label: 'Negatif', value: '15.7%', color: 'bg-red-50', iconColor: 'text-red-500',
+      label: 'Negatif', value: `${dashboardData.summary.negative_percentage}%`, color: 'bg-red-50', iconColor: 'text-red-500',
       icon: <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
     },
   ];
+
+  // Hitung persentase untuk lingkaran kepuasan
+  const kepuasanDashArray = `${dashboardData.summary.satisfaction_score}, 100`;
 
   return (
     // Halaman Dashboard
@@ -154,13 +203,13 @@ export default function Dashboard() {
               {/* Gambar Grafik Lingkaran */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path className="text-green-500" strokeWidth="3" strokeDasharray="78, 100" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path className="text-green-500" strokeWidth="3" strokeDasharray={kepuasanDashArray} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
               </svg>
 
               {/* Isi Di Dalam Grafik */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black text-slate-800 leading-none">78<span className="text-sm font-bold text-slate-400">/100</span></span>
-                <span className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">Baik</span>
+                <span className="text-3xl font-black text-slate-800 leading-none">{dashboardData.summary.satisfaction_score}<span className="text-sm font-bold text-slate-400">/100</span></span>
+                <span className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">Skor</span>
               </div>
             </div>
 
@@ -236,6 +285,9 @@ export default function Dashboard() {
                 </div>
               ));
             })()}
+            {dataTopAspek.length === 0 && (
+              <p className="text-sm text-slate-400">Belum ada data aspek yang dibicarakan.</p>
+            )}
           </div>
         </div>
 
@@ -261,6 +313,9 @@ export default function Dashboard() {
                 <span className="text-[13px] font-bold text-slate-700">{item.jumlah}</span>
               </div>
             ))}
+            {dataKeluhanUtama.length === 0 && (
+              <p className="text-sm text-slate-400">Belum ada data keluhan utama.</p>
+            )}
           </div>
         </div>
 
@@ -273,37 +328,31 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-6 xl:gap-8">
             {/* Container Grafik PieChart */}
             <div className="w-[160px] h-[160px] lg:w-[180px] lg:h-[180px] relative flex-shrink-0">
-              {isMounted ? (
-                <>
-                  {/* Grafik PieChart */}
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                      <Pie
-                        data={dataDonat}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="65%"
-                        outerRadius="90%"
-                        paddingAngle={2}
-                        dataKey="value"
-                        strokeWidth={0}
-                      >
-                        {dataDonat.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+              {/* Grafik PieChart */}
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <Pie
+                    data={dataDonat}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="65%"
+                    outerRadius="90%"
+                    paddingAngle={2}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {dataDonat.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
 
-                  {/* Isi Pie Chart */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-xl lg:text-2xl font-black text-slate-800 leading-none">1.939</p>
-                    <p className="text-[0.55rem] lg:text-[0.6rem] text-gray-400 font-bold capitalize mt-1">Total ulasan</p>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full rounded-full border-4 border-slate-100 border-t-indigo-500 animate-spin"></div>
-              )}
+              {/* Isi Pie Chart */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <p className="text-xl lg:text-2xl font-black text-slate-800 leading-none">{dashboardData.summary.total_reviews.toLocaleString()}</p>
+                <p className="text-[0.55rem] lg:text-[0.6rem] text-gray-400 font-bold capitalize mt-1">Total ulasan</p>
+              </div>
             </div>
 
             {/* Container Legenda & Persentase */}
@@ -320,7 +369,9 @@ export default function Dashboard() {
 
                   {/* Persentase */}
                   <div className="w-12 lg:w-12 flex-shrink-0 text-left">
-                    <span className="text-xs lg:text-sm font-medium text-slate-500">{((item.value / 1939) * 100).toFixed(1)}%</span>
+                    <span className="text-xs lg:text-sm font-medium text-slate-500">
+                      {dashboardData.summary.total_reviews > 0 ? ((item.value / dashboardData.summary.total_reviews) * 100).toFixed(1) : 0}%
+                    </span>
                   </div>
 
                   {/* Jumlah */}
@@ -368,28 +419,35 @@ export default function Dashboard() {
             <tbody className="text-sm">
               {itemSaatIni.map((baris, i) => (
                 <tr key={i} className="hover:bg-slate-50/30 transition-all">
-                  <td className="py-4 px-4 font-bold text-slate-900 border border-slate-200 sticky left-0 bg-white z-10">{baris.name}</td>
-                  <td className="py-4 px-2 text-center font-medium text-slate-500 border border-slate-200">{baris.total}</td>
-                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.pos}</td>
-                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.neu}</td>
-                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.neg}</td>
+                  <td className="py-4 px-4 font-bold text-slate-900 border border-slate-200 sticky left-0 bg-white z-10">{baris.product_name}</td>
+                  <td className="py-4 px-2 text-center font-medium text-slate-500 border border-slate-200">{baris.total_reviews}</td>
+                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.positive}</td>
+                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.neutral}</td>
+                  <td className="py-4 px-2 text-center text-slate-500 font-medium border border-slate-200">{baris.negative}</td>
                   <td className="py-4 px-4 text-center border border-slate-200">
                     <span className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-xl font-black text-xs">
-                      ⭐ {baris.rating}
+                      ⭐ {baris.satisfaction_score}
                     </span>
                   </td>
                 </tr>
               ))}
+              {itemSaatIni.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500 border border-slate-200">Belum ada data produk.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination di Bawah Tabel */}
-        <PaginationKustom
-          halamanSaatIni={halamanSaatIni}
-          totalHalaman={totalHalaman}
-          setHalamanSaatIni={setHalamanSaatIni}
-        />
+        {totalHalaman > 1 && (
+          <PaginationKustom
+            halamanSaatIni={halamanSaatIni}
+            totalHalaman={totalHalaman}
+            setHalamanSaatIni={setHalamanSaatIni}
+          />
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Notifikasi from '../elements/Notifikasi';
 
 const Register = () => {
   const [namaToko, setNamaToko] = useState('');
@@ -12,20 +13,75 @@ const Register = () => {
 
   const [lihatPassword, setLihatPassword] = useState(false);
   const [lihatKonfirmasiPassword, setLihatKonfirmasiPassword] = useState(false);
+  
+  const [showNotifikasi, setShowNotifikasi] = useState(false);
+  const [pesanNotif, setPesanNotif] = useState('');
+  const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
+  const [loading, setLoading] = useState(false);
 
   // Fungsi untuk menangani registrasi
-  const tanganiRegister = (e: React.FormEvent) => {
+  const tanganiRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== konfirmasiPassword) {
-      alert('Password dan konfirmasi password tidak cocok');
+      setPesanNotif('Password dan konfirmasi password tidak cocok');
+      setTipeNotif('error');
+      setShowNotifikasi(true);
       return;
     }
-    window.location.href = '/auth/verify';
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          store_name: namaToko,
+          email: email,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Terjadi kesalahan saat registrasi');
+      }
+
+      setPesanNotif('Registrasi berhasil! Silakan periksa email Anda.');
+      setTipeNotif('sukses');
+      setShowNotifikasi(true);
+      
+      // Simpan email ke sessionStorage untuk dipakai di halaman verifikasi
+      sessionStorage.setItem('verify_email', email);
+
+      setTimeout(() => {
+        window.location.href = '/auth/verify';
+      }, 1500);
+    } catch (error) {
+      if (error instanceof Error) {
+        setPesanNotif(error.message);
+      } else {
+        setPesanNotif(String(error));
+      }
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     // Register Page
     <div className="min-h-screen md:h-screen w-full flex flex-col lg:flex-row bg-white md:overflow-hidden lg:overflow-hidden">
+
+      <Notifikasi
+        show={showNotifikasi}
+        onClose={() => setShowNotifikasi(false)}
+        pesan={pesanNotif}
+        tipe={tipeNotif}
+      />
 
       {/* Container Gambar dan Logo */}
       <div className="lg:w-[60%] h-auto md:h-[52vh] lg:h-full flex flex-col bg-white relative pt-8 md:pt-0 lg:pt-0">
@@ -177,9 +233,10 @@ const Register = () => {
             {/* Tombol Daftar */}
             <button
               type="submit"
-              className="w-full bg-white text-hero py-2 rounded-xl font-black text-base shadow-2xl shadow-black/10 hover:bg-slate-50 transition-all mt-2"
+              disabled={loading}
+              className="w-full bg-white text-hero py-2 rounded-xl font-black text-base shadow-2xl shadow-black/10 hover:bg-slate-50 transition-all mt-2 disabled:opacity-50"
             >
-              DAFTAR
+              {loading ? 'MEMPROSES...' : 'DAFTAR'}
             </button>
           </form>
 

@@ -7,16 +7,49 @@ import Notifikasi from '../elements/Notifikasi';
 const LupaPassword = () => {
   const [email, setEmail] = useState('');
   const [showNotifikasi, setShowNotifikasi] = useState(false);
+  const [pesanNotif, setPesanNotif] = useState('');
+  const [tipeNotif, setTipeNotif] = useState<'sukses' | 'error'>('sukses');
+  const [loading, setLoading] = useState(false);
 
   // Fungsi untuk menangani reset password
-  const tanganiReset = (e: React.FormEvent) => {
+  const tanganiReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowNotifikasi(true);
+    setLoading(true);
 
-    // Redirect ke login setelah
-    setTimeout(() => {
-      window.location.href = '/auth/login';
-    }, 2500);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Gagal memproses permintaan');
+      }
+
+      setPesanNotif('Link reset password telah terkirim (jika email terdaftar).');
+      setTipeNotif('sukses');
+      setShowNotifikasi(true);
+
+      // Redirect ke login setelah
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 2500);
+    } catch (error) {
+      if (error instanceof Error) {
+        setPesanNotif(error.message);
+      } else {
+        setPesanNotif(String(error));
+      }
+      setTipeNotif('error');
+      setShowNotifikasi(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,8 +60,8 @@ const LupaPassword = () => {
       <Notifikasi
         show={showNotifikasi}
         onClose={() => setShowNotifikasi(false)}
-        pesan="Link reset password telah terkirim."
-        tipe="sukses"
+        pesan={pesanNotif}
+        tipe={tipeNotif}
       />
 
       {/* Container Kotak Lupa Password */}
@@ -67,9 +100,10 @@ const LupaPassword = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-hero text-white py-3.5 rounded-lg font-black text-base hover:bg-navbar transition-all"
+            disabled={loading}
+            className="w-full bg-hero text-white py-3.5 rounded-lg font-black text-base hover:bg-navbar transition-all disabled:opacity-50"
           >
-            KIRIM LINK RESET
+            {loading ? 'MENGIRIM...' : 'KIRIM LINK RESET'}
           </button>
         </form>
 
