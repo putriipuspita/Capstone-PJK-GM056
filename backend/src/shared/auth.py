@@ -22,10 +22,14 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
         credentials = None
 
     if credentials:
-        user = get_supabase_auth_client().auth.get_user(credentials.credentials).user
-        email = user.email or settings.dev_user_email
-        store_name = user.user_metadata.get("store_name") or user.user_metadata.get("namaToko") or email
-        return CurrentUser(user_id=user.id, email=email, store_name=store_name)
+        try:
+            user = get_supabase_auth_client().auth.get_user(credentials.credentials).user
+            email = user.email or settings.dev_user_email
+            store_name = user.user_metadata.get("store_name") or user.user_metadata.get("namaToko") or email
+            return CurrentUser(user_id=user.id, email=email, store_name=store_name)
+        except Exception as e:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="Token kadaluarsa atau tidak valid. Silakan login kembali.")
 
     return CurrentUser(
         user_id=settings.dev_user_id,

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     huggingface_api_token: str | None = None
     huggingface_model_id: str | None = None
     huggingface_timeout_seconds: int = 60
-    huggingface_batch_size: int = 32
+    huggingface_batch_size: int = 100
     huggingface_id2label: str = "negatif,netral,positif"
     gemini_api_key: str | None = None
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str = "uploads"
     backend_public_url: str = "http://127.0.0.1:8000"
     frontend_public_url: str = "http://localhost:3000"
+    insight_microservice_url: str | None = None
 
     @property
     def auth_callback_url(self) -> str:

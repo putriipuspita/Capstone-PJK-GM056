@@ -102,7 +102,7 @@ def analyze_insights(rows: list[ReviewRow], predictions: list[dict]) -> dict:
                 complaint_counts["Keluhan lainnya"] += 1
                 
         if sentiment == "positif":
-            if len(text) > 30:
+            if (len(text) > 10 & len(text) < 16):
                 strengths.append(row.review_text)
 
     # Format Aspek
@@ -142,6 +142,31 @@ def analyze_insights(rows: list[ReviewRow], predictions: list[dict]) -> dict:
     }
 
 def build_recommendations(complaints: list[dict], aspect_insights: list[dict], strengths: list[str]) -> list[dict]:
+    from src.shared.config import settings
+    import requests
+    import logging
+    
+    logger = logging.getLogger(__name__)
+
+    # Jika microservice URL dikonfigurasi, tembak ke microservice
+    if settings.insight_microservice_url:
+        try:
+            logger.info(f"Memanggil Insight Microservice di {settings.insight_microservice_url}...")
+            response = requests.post(
+                f"{settings.insight_microservice_url.rstrip('/')}/api/recommendations",
+                json={
+                    "complaints": complaints,
+                    "aspect_insights": aspect_insights,
+                    "strengths": strengths
+                },
+                timeout=60
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Gagal memanggil Insight Microservice: {e}. Jatuh kembali ke proses lokal/rule-based.")
+
+    # Jika tidak ada microservice, atau microservice gagal, coba panggil fungsi gemini_service lokal
     from src.api_app.services.gemini_service import generate_gemini_recommendations
     
     gemini_recs = generate_gemini_recommendations(complaints, aspect_insights, strengths)
