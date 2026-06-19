@@ -26,7 +26,23 @@ Proyek ini dibangun dengan arsitektur **Tri-Service** yang terintegrasi untuk st
 - **Machine Learning & AI**: HuggingFace Transformers (Analisis Sentimen), Google GenAI / Gemini (Pembangkitan _Insight_ Strategis).
 - **Infrastruktur Hosting**: Vercel (Frontend), Hugging Face Spaces (Core Backend), Vercel (Microservice), Supabase (Database & Auth).
 
-## 5. Fitur Unggulan
+## 5. Sumber Dataset
+Untuk melatih model _Machine Learning_ (IndoBERT) agar memiliki akurasi tinggi dalam memahami konteks ulasan berbahasa Indonesia, kami menggunakan dataset berskala besar yang disimpan di dalam direktori `model/`. Komposisi dataset ini terdiri dari:
+- **60% Hasil Scraping**: Data ulasan asli dan terbaru yang ditarik langsung dari platform _e-commerce_.
+- **40% Dataset Publik (Kaggle)**: Gabungan dataset ulasan e-commerce terverifikasi dari Kaggle.
+#### Dataset 1: reviews_output.csv (Hasil Scraping)
+
+#### Dataset 2: tokopedia-product-reviews-2019.csv
+- Judul: Tokopedia Product Reviews (by Farhan)
+- Link: [https://www.kaggle.com/datasets/farhan999/tokopedia-product-reviews/data](https://www.kaggle.com/datasets/farhan999/tokopedia-product-reviews/data)
+
+#### Dataset 3: tokopedia_product_reviews_2025.csv
+- Judul:  Tokopedia Product Reviews 2025 (by Salman Abdurrahman)
+- Link: [https://www.kaggle.com/datasets/salmanabdu/tokopedia-product-reviews-2025](https://www.kaggle.com/datasets/salmanabdu/tokopedia-product-reviews-2025)
+
+Penggabungan dua sumber ini (data historis yang berstandar dan data *scraping* terbaru) memastikan model AI kami tidak hanya akurat, tetapi juga sangat relevan dengan gaya bahasa pelanggan (*slang/alay*) masa kini.
+
+## 6. Fitur Unggulan
 
 - **Dashboard Analitik Dinamis**: Menampilkan metrik seperti Total Ulasan, Skor Kepuasan (0-100), dan Distribusi Sentimen (Donut Chart).
 - **Grafik Tren Sentimen**: Memantau perkembangan pergerakan sentimen dengan filter dinamis (1 Bulan, 3 Bulan, 1 Tahun Terakhir).
@@ -34,7 +50,7 @@ Proyek ini dibangun dengan arsitektur **Tri-Service** yang terintegrasi untuk st
 - **Rekomendasi Strategis (AI)**: Memberikan saran bisnis spesifik dengan mekanisme _fallback_ ke _Rule-Based_ jika AI sedang mengalami _limit_.
 - **Pemrosesan Latar Belakang (_Background Queue_)**: Unggah _dataset_ besar tanpa takut aplikasi _freeze_, karena analisis dijalankan secara paralel di latar belakang.
 
-## 6. Arsitektur Tri-Service 
+## 7. Arsitektur Tri-Service 
 
 Karena API Google Gemini memblokir IP dari peladen Hugging Face Spaces, aplikasi ini dirancang memecah beban ke 3 tempat:
 
@@ -42,7 +58,7 @@ Karena API Google Gemini memblokir IP dari peladen Hugging Face Spaces, aplikasi
 2. **Core Backend (FastAPI)** $\rightarrow$ Di-hosting di **Hugging Face Spaces**. Menangani komputasi berat, pemrosesan antrean CSV latar belakang, dan model _Machine Learning_ (butuh RAM besar 16GB).
 3. **Insight Microservice (FastAPI)** $\rightarrow$ Di-hosting di **Vercel**. Menangani permintaan ringan ke API Google Gemini sebagai jembatan agar IP tidak diblokir.
 
-## 7. Cara Instalasi Lokal untuk Development
+## 8. Cara Instalasi dan Menjalankan Aplikasi
 
 ### Struktur Folder
 
@@ -56,6 +72,10 @@ Karena API Google Gemini memblokir IP dari peladen Hugging Face Spaces, aplikasi
  ┃ ┣ 📜 main.py                # Logika pemanggilan API Gemini
  ┃ ┣ 📜 requirements.txt       # Dependensi super ringan (google-genai)
  ┃ ┗ 📜 vercel.json            # Konfigurasi deploy untuk Vercel
+ ┣ 📂 model/                   # Machine Learning Training & Notebooks
+ ┃ ┣ 📂 saved_model/           # Hasil bobot model (weights) yang sudah dilatih
+ ┃ ┣ 📜 analisissentimen.ipynb # Notebook untuk proses training IndoBERT
+ ┃ ┗ 📜 *.csv / *.tsv          # Dataset ulasan, lexicon, dan kamus slang
  ┗ 📂 web/                     # Frontend App (Next.js 14)
    ┣ 📂 src/                   # Komponen React, Halaman UI, dan Hooks
    ┣ 📜 package.json           # Dependensi Node.js
@@ -106,11 +126,11 @@ git clone https://github.com/putriipuspita/Capstone-PJK-GM056.git
    ```
    _Frontend kini dapat diakses melalui `http://localhost:3000`._
 
-## 8. Kolaborasi Tim
+## 9. Kolaborasi Tim
 
 Proyek ini merupakan hasil kerja keras dari tim **Capstone Project PJK-GM056**. Pengembangan dilakukan melalui pendekatan lintas disiplin yang meliputi peran _Front-End Engineering_, _Back-End Engineering_, serta _Machine Learning Engineering_.
 
-## 9. Catatan Penting
+## 10. Catatan Penting
 
 - Karena analisis menggunakan pemodelan AI, waktu pemrosesan akan bergantung pada jumlah baris pada CSV yang diunggah. Terdapat pemantauan progres (polling) otomatis di UI.
 - API Gemini memiliki batasan penggunaan gratis (_Rate Limit_ / _Daily Limit_). Jika batas tercapai, sistem secara otomatis akan menggunakan rekomendasi _Rule-Based_ sebagai cadangan (_fallback_) agar aplikasi tidak _crash_.
