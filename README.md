@@ -18,7 +18,7 @@ Di era digital, volume ulasan (_reviews_) pelanggan yang masuk ke sebuah toko sa
 
 ## 4. Teknologi yang Digunakan
 
-Proyek ini dibangun dengan arsitektur **Tri-Service** yang terintegrasi untuk stabilitas maksimal:
+Proyek ini dibuat dengan arsitektur **Tri-Service** yang terintegrasi untuk stabilitas maksimal:
 
 - **Frontend**: React.js, Next.js (App Router), TailwindCSS, Recharts (visualisasi data).
 - **Core Backend**: FastAPI (Python), SQLAlchemy, PostgreSQL (melalui Supabase PgBouncer dengan NullPool).
@@ -85,7 +85,7 @@ Karena API Google Gemini memblokir IP dari peladen Hugging Face Spaces, aplikasi
 Pastikan sistem Anda sudah terinstal **Node.js** dan **Python (>=3.9)**.
 
 ### A. Clone Repositori
-
+cara untuk clone repositori
 ```bash
 git clone https://github.com/putriipuspita/Capstone-PJK-GM056.git
 ```
